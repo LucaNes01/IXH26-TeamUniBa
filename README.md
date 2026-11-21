@@ -33,7 +33,6 @@ Start with the [public Python API](protocollo/__init__.py), then follow a photo 
 - **From Python to C.** Key and signature sizes are in [specs.py](crypto_kit/specs.py). The [Python wrapper](crypto_kit/cross_official.py) loads the library through the [C bridge](crypto_kit/native/cross_bridge.c). The [build script](scripts/build_cross.py) checks the sources and builds the `small` and `fast` variants. [CROSS integration notes](third_party/cross/INTEGRATION.md) · [Upstream manifest](third_party/cross/UPSTREAM.json)
 - **Known-answer tests.** The [CROSS test](tests/test_cross_official.py) compares keys and signatures with [reference vectors](tests/fixtures/). The [KAT verification script](scripts/verify_cross_kat.py) runs the official generator and checks full checksums.
 - **From individual checks to a distributed proof.** Read the [capture and development tests](tests/test_provenienza.py), [XRPL response tests](tests/test_ledger.py), and [registry and validator tests](tests/test_dispositivi.py). The last file includes validators running in separate processes and a simulated XRPL node.
-- **Project history.** The initial notes record proposals from an earlier stage of the project. [Initial notes](IXH26%20niccol%C3%B2.txt)
 
 ## Running the project
 
