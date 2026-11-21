@@ -41,7 +41,7 @@ python3 scripts/build_cross.py
 python3 -B -m unittest discover -s tests -v
 ```
 
-The build requires Python 3 and a C11 compiler on macOS or Linux. It uses the CROSS v2.2 reference library bundled in `third_party/cross/`. Image analysis uses the [PRNU and JPEG dependencies](requirements-prnu.txt). The AES-CMAC adapter also requires `cryptography`. The optional AI detector uses the [AI dependencies](requirements-ia.txt) and the checkpoint linked below.
+The build requires Python 3 and a C11 compiler on macOS or Linux. It uses the CROSS v2.2 reference library bundled in `third_party/cross/`. Image analysis uses the [PRNU and JPEG dependencies](requirements-prnu.in). The AES-CMAC adapter also requires `cryptography`. The optional AI detector uses the [AI dependencies](requirements-ia.in) and the checkpoint linked below.
 
 ## Device enrollment
 
@@ -100,7 +100,7 @@ The module verifies the tag before hashing the frame for the CROSS signature. Th
 
 ## PRNU comparison
 
-Install the optional dependencies with `python3 -m pip install -r requirements-prnu.txt`. The authority uses `protocollo.prnu.stima_prnu` to estimate a reference from multiple evenly illuminated captures of the same sensor under controlled conditions. It includes the digest returned by `protocollo.prnu.impronta_prnu` as `prnu_sha256` in both `messaggio_certificato_sensore` and `CertificatoSensore`. The enrollment quorum approves the request tied to that certificate. The enrollment proof digest can then be anchored on XRPL.
+Install the optional dependencies with `python3 -m pip install -r requirements-prnu.in`. The authority uses `protocollo.prnu.stima_prnu` to estimate a reference from multiple evenly illuminated captures of the same sensor under controlled conditions. It includes the digest returned by `protocollo.prnu.impronta_prnu` as `prnu_sha256` in both `messaggio_certificato_sensore` and `CertificatoSensore`. The enrollment quorum approves the request tied to that certificate. The enrollment proof digest can then be anchored on XRPL.
 
 ```python
 cattura_compatibile = registro.verifica_cattura_prnu(
@@ -155,7 +155,7 @@ Pass `analisi_jpeg=valuta_jpeg` to `server_validatore` to enable `POST /analisi-
 
 ### Quorum for statistical AI detection on a standalone JPEG
 
-The node can run **Community Forensics ViT-S/16 224** (Park and Owens, CVPR 2025) locally. Run `python3 -m pip install -r requirements-ia.txt` and download the [authors' MIT-licensed weights](https://huggingface.co/OwensLab/commfor-model-224/blob/26afc31e6b40c312c3fd42c05a758be62446215b/model.safetensors). The loader checks the SHA-256 digest before loading the checkpoint. It follows the authors' evaluation procedure for RGB decoding, resizing, center cropping, and normalizing.
+The node can run **Community Forensics ViT-S/16 224** (Park and Owens, CVPR 2025) locally. Run `python3 -m pip install -r requirements-ia.in` and download the [authors' MIT-licensed weights](https://huggingface.co/OwensLab/commfor-model-224/blob/26afc31e6b40c312c3fd42c05a758be62446215b/model.safetensors). The loader checks the SHA-256 digest before loading the checkpoint. It follows the authors' evaluation procedure for RGB decoding, resizing, center cropping, and normalizing.
 
 ```python
 from protocollo.analisi_ia import CommunityForensics224, QuorumIA

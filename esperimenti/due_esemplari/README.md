@@ -27,7 +27,7 @@ The ground truth file maps each blind filename to a camera, for example `{"001.d
 Run these commands from the repository root.
 
 ```sh
-python3 -m pip install -r requirements-prnu.txt
+python3 -m pip install -r requirements-prnu.in
 python3 -m pip install rawpy
 python3 -m esperimenti.due_esemplari.confronto dati --schema RGGB > rapporto.json
 ```
