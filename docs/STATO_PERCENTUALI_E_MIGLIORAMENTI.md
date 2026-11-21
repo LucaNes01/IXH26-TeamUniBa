@@ -1,622 +1,575 @@
-# Team Bari — Percentuali e piano completo dei miglioramenti
+# Team Bari - Percentages and full plan of improvements
 
-**Aggiornato al 17 novembre 2026. Documento di confronto per il team.**
+**Updated November 17, 2026. Internal discussion document.**
 
-**Nota del 20 novembre 2026.** Le percentuali citate qui si riferiscono alla
-revisione del 17 novembre. Il [README](../README.md) descrive il codice corrente
-di verifica della cattura e della derivazione del file finale.
+**Note of 20 November 2026.** The percentages quoted here refer to the revision of 17 November.
+[README](../README.md) describes the current code of the capture and derivation verification of the
+final file.
 
-Questo documento raccoglie le percentuali discusse, tutti i sette temi sollevati
-da Niccolò e gli altri limiti emersi nel progetto. Per ogni area propone due
-soluzioni, spiegando il meccanismo, le condizioni necessarie e un esempio.
-Le alternative sono proposte: non indicano funzionalità già implementate.
+This document collects the percentages discussed, all the seven themes raised by Niccolò and the
+other limits that emerged in the project. For each area it proposes two solutions, explaining the
+mechanism, the necessary conditions and an example. Alternatives are proposed: they do not indicate
+functions already implemented.
 
-## 1. Come leggere le percentuali
+## 1. How to read the percentages
 
-**Stima complessiva discussa: circa 50%, rispetto al precedente 40%.**
+**The total amount discussed: about 50%, compared to the previous 40%.**
 
-Sono valutazioni qualitative del completamento delle garanzie, non probabilità
-di sicurezza, misure scientifiche o risultati di un audit. Il 50% complessivo è
-un giudizio orientativo sul progetto; non deriva da pesi o criteri quantitativi
-formalizzati. Non significa che metà delle operazioni sia sicura o che basti
-metà del lavoro per una soluzione pronta per la gara.
+The percentages are qualitative estimates of how fully each guarantee was implemented. They carry no probabilistic, scientific, or audit interpretation. The overall 50% is a project orientation judgment; it does not derive
+from formalized quantitative weights or criteria. It does not mean that half of the operations are
+safe or that half of the work is sufficient for a ready-to-race solution.
 
-La colonna “Prima” riprende la valutazione precedente alle modifiche di questa
-chat; “Oggi” riprende quella discussa il 17 novembre. Gli zeri correggono il
-credito attribuito al vecchio toolkit, poi eliminato: nel protocollo corrente
-quelle funzionalità non sono presenti. Non descrivono nuove vulnerabilità
-introdotte dalle pulizie.
+The column "Before" resumes the previous evaluation of the changes of this chat; "Today" resumes the
+one discussed on November 17. Zeros correct the credit attributed to the old toolkit, then
+eliminated: in the current protocol those features are not present. They do not describe new
+vulnerabilities introduced by the cleaning.
 
-| Garanzia | Prima | Oggi | Motivazione e principali sezioni di lavoro |
+| Guarantee | Before | Today | Reasons and main sections of work |
 | --- | ---: | ---: | --- |
-| Modello di fiducia e regole | 55% | **65%** | Ruoli distinti, parametri espliciti; restano governance, chiusura e ipotesi operative. M01, M10, M11. |
-| Registrazione e autorizzazioni | 45% | **45%** | Prova di possesso della chiave; nessuna unicità personale o abilitazione applicativa. M02. |
-| Autenticità delle richieste | 40% | **85%** | CROSS ufficiale e ricevute firmate; restano gestione delle chiavi e verifiche di integrazione. M03–M05. |
-| Riservatezza verso il server | 15% | **15%** | Le private degli utenti restano ai client; manca il protocollo sui segreti applicativi. M14–M16. |
-| Protezione dei dati archiviati e trasmessi | 20% | **0%** | Mancano un servizio di rete protetto e un archivio persistente protetto. M06, M08, M13. |
-| Controllo distribuito del segreto | 20% | **0%** | Non implementato nel flusso corrente. M15. |
-| Validità degli input e delle modifiche | 25% | **25%** | Controllo esplicito, ma la demo verifica soltanto il formato del commitment. M17. |
-| Quorum sulla stessa operazione | 75% | **85%** | Firme legate a richiesta e configurazione; soglie parametrizzate e testate. M01, M09, M12. |
-| Correttezza e completezza del risultato | 30% | **35%** | Ricevute migliori; mancano insieme completo degli input e calcolo finale verificabile. M07, M09, M11, M18. |
-| Replay, sessioni e scadenze | 70% | **80%** | Quorum temporali e separazione delle sessioni; mancano ripristino e chiusura definitiva. M06, M10–M12. |
-| Assenze e comportamenti malevoli | 40% | **50%** | Gestiti quorum incompleti e prove tardive; manca l'operatività su nodi distinti. M05, M09, M11, M20. |
-| Ancoraggio blockchain effettivo | 20% | **0%** | Assente; non necessario alla soluzione temporale scelta. Da valutare solo rispetto alla traccia. M22. |
-| Validazione avversariale | 45% | **70%** | 36 test superati, inclusi vettori ufficiali; mancano prove di rete, crash e revisione indipendente. M21. |
+| Model of trust and rules | 55% | **65%** | Separate roles, explicit parameters; governance, closure and operational assumptions remain. M01, M10, M11. |
+| Registration and authorisations | 45% | **45%** | Key holding test; no personal uniqueness or application rating. M02. |
+| Authenticity of requests | 40% | **85%** | Official CROSS and signed receipts; key management and integration checks remain. M03–M05. |
+| Confidentiality to the server | 15% | **15%** | Users' private keys remain on their clients; the application secrets protocol is missing. M14–M16. |
+| Protection of stored and transmitted data | 20% | **0%** | There is no secure network service and no persistent protected archive. M06, M08, M13. |
+| Distributed control of secrecy | 20% | **0%** | Not implemented in the current stream. M15. |
+| Validity of inputs and changes | 25% | **25%** | Explicit control, but the demo only checks the commit format. M17. |
+| Quorum on the same operation | 75% | **85%** | Signatures linked to request and configuration; parameterized thresholds and tested. M01, M09, M12. |
+| Correctness and completeness of the result | 30% | **35%** | Better receipts; complete input and final calculation are missing. M07, M09, M11, M18. |
+| Replay, sessions and deadlines | 70% | **80%** | Time Quorum and session separation; no recovery and final closure. M06, M10–M12. |
+| Unavailable and malicious validators | 40% | **50%** | Incomplete quorums and late tests; no operation on distinct nodes. M05, M09, M11, M20. |
+| Actual blockchain anchor | 20% | **0%** | Absent; not necessary to the chosen time solution. To be evaluated only with respect to the track. M22. |
+| Adversarial validation | 45% | **70%** | 36 tests passed, including official test vectors; network tests, crash tests, and independent review are pending. M21. |
 
-## 2. Cosa esiste effettivamente
+## 2. What actually exists
 
-- Configurazione immutabile della sessione e distinzione fra utenti e validatori.
-- Registrazione pseudonima con sfida firmata e chiavi generate dai client.
-- Contributi e attestazioni legati alla configurazione e alla specifica operazione.
-- CROSS ufficiale di riferimento v2.2, richiamato da Python; sorgenti upstream fissati.
-- Ricevute firmate dal coordinatore per le operazioni accettate.
-- Ricevute temporali firmate dai validatori, distinte dalle approvazioni.
-- Accettazione delle prove tempestive anche se consegnate dopo al coordinatore.
-- Osservazione della scadenza mediante firme dei validatori e stato `IN_ATTESA_DI_PROVE`.
-- Demo parametrica e **36 test superati**, rieseguiti per preparare questo documento.
+- Unchangeable session configuration and distinction between users and validators.
+- Registration pseudonym with signed challenge and keys generated by clients.
+- Contributions and attestations related to the configuration and the specific operation.
+- Official CROSS reference v2.2, called from Python, with pinned upstream sources.
+- Receives signed by the coordinator for accepted operations.
+- Time receipts signed by validators, separate from approvals.
+- Acceptance of timely tests even if delivered after to the coordinator.
+- Empty observation through validator signatures and `IN_ATTESA_DI_PROVE` status.
+- Parametric Demo and **36 tests passed**, rerun to prepare this document.
 
-Restano oggetti locali nello stesso processo, con stato in memoria. Non abbiamo
-una rete decentralizzata già funzionante, persistenza, consenso BFT o calcolo
-applicativo completo. Una firma autentica non dimostra la correttezza del dato
-firmato, la precisione dell'orologio o la disponibilità futura dei dati.
+Local objects remain in the same process, with state in memory. We do not have a decentralized
+network already functioning, persistence, BFT consent or complete application calculation. An
+authentic signature does not demonstrate the correctness of the signed data, the accuracy of the
+clock or the future availability of data.
 
-## 3. Parametri generali e priorità
+## 3. General parameters and priorities
 
-| Simbolo | Significato |
+| Symbol | Meaning |
 | --- | --- |
-| N | Numero dei validatori autorizzati, ricavato dalle chiavi della configurazione. |
-| Q | Soglia di approvazione del contenuto. |
-| T | Soglia delle ricevute temporali. |
-| F | Numero massimo di validatori disonesti ipotizzato nel modello di fiducia. |
-| ε | Tolleranza massima assunta per gli orologi onesti. |
+| N | Number of approved validators, derived from configuration keys. |
+| Q | Content approval threshold. |
+| T | Threshold of temporal receipts. |
+| F | Maximum number of dishonest validators assumed in the trust model. |
+| ε | Maximum tolerance assumed for honest watches. |
 
-Non imponiamo un numero fisso di validatori. Occorre `1 <= Q <= N` e
-`1 <= T <= N`; Q e T possono essere diversi. Per la sola garanzia temporale
-serve `T > F`; per raccogliere le ricevute anche se F nodi non collaborano serve
-`T <= N - F`, assumendo gli altri disponibili. Queste condizioni non bastano
-a implementare consenso o a garantire la correttezza applicativa.
+We do not impose a fixed number of validators. We need `1 <= Q <= N` and `1 <= T <= N`; Q and T can
+be different. For the time warranty only it serves `T > F`; to collect receipts even if F nodes do
+not cooperate we need `T <= N - F`, assuming the others available. These conditions are not enough
+to implement consent or to guarantee the correct application.
 
-**P1** significa fondazione da affrontare subito; **P2** significa completamento
-del protocollo e dell'operatività; **P3** significa lavoro dipendente dalla traccia
-o dai requisiti di privacy. La priorità non misura la difficoltà né attribuisce
-percentuali aggiuntive.
+**P1** means foundation to be addressed immediately; **P2** means completion of protocol and
+operation; **P3** means work dependent on track or privacy requirements. Priority does not measure
+difficulty or assign additional percentages.
 
-## 4. Copertura dei sette punti di Niccolò
+## 4. Coverage of the seven points of Niccolò
 
-| Punto originale | Situazione attuale | Dove viene approfondito |
+| Original point | Current situation | Where it is deepened |
 | --- | --- | --- |
-| Ridurre la fiducia nel coordinatore | Ricevute implementate; comunicazione e sincronizzazione indipendenti assenti. | M07, M09, M11, M20. |
-| Scadenza e orologio | Scelta una soluzione con ricevute dei validatori; niente XRPL. Mancano nodi reali e gestione operativa degli orologi. | M10, M11. |
-| Log append-only | Non implementato. Una sola catena locale non basta contro riscrittura e omissioni. | M06, M07. |
-| Separazione dei domini | Già presente; va preservata nelle estensioni. | M04. |
-| Revoca o rotazione dei validatori | Non implementata durante la sessione. | M05, M01. |
-| Metadati di rete: IP e tempi | Non implementati trasporto o protezioni specifiche dei metadati. | M08, M19. |
-| Reveal e mancata collaborazione | Fase di reveal non ancora definita nel protocollo corrente. | M14–M16, M18. |
-
-## M01 — Modello di fiducia, configurazione e scelta delle soglie
-
-**Stato e priorità: parziale, P1.** Oggi il coordinatore propone la configurazione
-iniziale. Una soglia nell'intervallo corretto può comunque essere inadeguata.
-
-**Soluzione A — Configurazione approvata esplicitamente prima della sessione.**
-I partecipanti verificano elenco dei validatori, impronta, Q, T, scadenza e regola;
-il comitato firma l'approvazione del manifest iniziale secondo una procedura
-concordata fuori dalla sessione. Funziona perché il coordinatore non può presentare
-una configurazione diversa senza che l'impronta cambi. Rimane necessario un punto
-iniziale di fiducia sulle chiavi e sull'indipendenza dei validatori.
-
-**Soluzione B — Politica di configurazione verificata dai nodi.**
-Definiamo criteri espliciti rispetto a F e ai guasti tollerati, più una procedura
-per approvare soltanto le configurazioni delle sessioni successive. Funziona
-perché i nodi rifiutano soglie o sostituzioni fuori politica. Se possono esistere
-proposte concorrenti, serve anche un ordine condiviso: le firme da sole non lo creano.
-
-**Esempio.** In una sessione S, N, Q e T sono fissati. Il coordinatore vuole
-ridurre Q perché alcuni nodi sono assenti: entrambe le soluzioni impediscono il
-cambio in S. In A si negozia una nuova sessione; in B la nuova configurazione
-deve inoltre superare i controlli della politica e l'autorizzazione prevista.
-
-## M02 — Registrazione, diritti e account multipli
-
-**Stato e priorità: registrazione presente, diritti applicativi da definire, P3.**
-Una chiave identifica un account, non una persona.
-
-**Soluzione A — Credenziale di abilitazione emessa da un soggetto autorizzato.**
-Un ente controlla il requisito applicativo e firma un titolo valido per quella
-sessione. Il protocollo registra l'utilizzo del titolo. Funziona se l'emittente
-impedisce abilitazioni multiple indebite; la responsabilità dell'ammissione resta sua.
-
-**Soluzione B — Credenziale con prova di possesso non collegabile e nullifier.**
-L'utente dimostra di avere un titolo valido senza pubblicarlo direttamente e
-produce un identificatore di spesa unico per quella sessione. Funziona contro
-il riuso del medesimo titolo e può ridurre la collegabilità. Non impedisce a
-un'emissione difettosa di attribuire due titoli alla stessa persona; richiede
-un sistema di credenziali e prove già studiato, non una ZKP inventata.
-
-**Esempio.** Alice apre molti account ma possiede un solo titolo elettorale.
-In A il secondo uso dello stesso titolo viene rifiutato; in B viene rifiutato
-il secondo nullifier uguale, senza dover pubblicare l'identità di Alice.
-
-## M03 — Affidabilità dell'integrazione CROSS ufficiale
-
-**Stato e priorità: backend ufficiale integrato, consolidamento P1/P2.**
-Non serve riscrivere CROSS. Serve mantenere riproducibile e verificabile il
-collegamento al codice degli autori, già fissato nel repository.
-
-**Soluzione A — Conservare il riferimento upstream con verifiche automatiche.**
-Controlliamo manifest, versione, parametri, dimensioni e vettori ufficiali a ogni
-modifica del binding o del compilatore. Funziona perché intercetta cambi di formato
-e divergenze dai risultati attesi. I vettori non equivalgono a un audit di sicurezza.
-
-**Soluzione B — Usare una distribuzione mantenuta con wrapper supportato.**
-Se disponibile per versione, piattaforma e parametri richiesti, adottiamo una
-libreria mantenuta che includa CROSS, fissandone versione e provenienza e
-verificandola con gli stessi vettori. Funziona riducendo il codice di integrazione
-che dobbiamo mantenere; non rende automaticamente sicura qualsiasi distribuzione.
-
-**Esempio.** Una nuova build produce una firma di formato diverso. A blocca
-l'aggiornamento quando i vettori divergono; B impone una migrazione esplicita del
-backend e della suite nella configurazione, senza accettare silenziosamente vecchie firme.
-
-Fonte del backend corrente: [implementazione degli autori CROSS](https://github.com/CROSS-signature/CROSS-implementation).
-
-## M04 — Separazione dei domini, serializzazione e versioni
-
-**Stato e priorità: già implementata, requisito permanente P1.** È il quarto
-punto di Niccolò. I messaggi includono protocollo, azione e impronta della configurazione.
-
-**Soluzione A — Estendere il formato canonico attuale con schemi rigorosi.**
-Ogni operazione ha campi ammessi, tipi, limiti e versione precisi. Il verificatore
-ricostruisce i byte canonici prima di verificare la firma. Funziona impedendo
-che la stessa firma autorizzi azioni diverse o rappresentazioni ambigue.
-
-**Soluzione B — Adottare una codifica deterministica standard.**
-Una libreria mantenuta gestisce la rappresentazione canonica, con etichette di
-dominio e versione definite dal nostro protocollo. Funziona migliorando
-l'interoperabilità tra linguaggi; serve comunque uno schema applicativo rigoroso.
-
-**Esempio.** Una firma su `PUBBLICA` viene ripresentata come `ATTESTA`. A e B
-producono byte diversi per le due azioni e la verifica fallisce. Una revoca
-futura deve avere a sua volta un dominio distinto dalle approvazioni.
-
-## M05 — Custodia, rotazione e revoca delle chiavi
-
-**Stato e priorità: non implementata operativamente, P2.** Comprende il quinto
-punto di Niccolò e le chiavi di utenti, coordinatore e validatori.
-
-**Soluzione A — Custodia protetta e sostituzione tra sessioni.**
-Conserviamo le private in un archivio cifrato o in un servizio di firma compatibile
-con CROSS, con accessi limitati e recupero controllato. In emergenza interrompiamo
-la sessione secondo una procedura esplicita e ne avviamo una nuova. Funziona
-mantenendo immutabile la vecchia configurazione; occorre decidere cosa recuperare
-e come trattare i risultati già definitivi. Non tutti i dispositivi hardware supportano CROSS.
-
-**Soluzione B — Revoca certificata con epoche e regole di transizione.**
-Un quorum di governance autorizza la sostituzione e ne fissa il punto di efficacia,
-con ordine condiviso degli eventi. Funziona distinguendo le autorizzazioni prima
-e dopo il cambio. Non basta cancellare una chiave dalla lista: bisogna specificare
-soglie, firme pregresse e conseguenze di una compromissione retroattiva.
-
-**Esempio.** V perde il controllo della propria privata. A blocca nuove operazioni
-e ricostituisce il comitato in S2. B attiva una nuova epoca e verifica ogni firma
-rispetto a quell'epoca. In entrambi i casi un semplice timestamp dichiarato da V
-non prova che una sua firma preceda il furto.
-
-## M06 — Persistenza, atomicità e ripristino
-
-**Stato e priorità: assente, P1; primo intervento consigliato.** Serve sia al
-coordinatore sia ai nodi temporali, che oggi perdono lo stato al riavvio.
-
-**Soluzione A — SQLite con transazioni e vincoli.**
-Una transazione salva richiesta, nonce consumato, esito, ricevuta ed evento.
-La risposta positiva parte dopo il commit. Funziona perché non lascia accettazioni
-parziali e permette il ripristino dello stesso stato. La durabilità dipende anche
-dalle impostazioni di sincronizzazione e dal sistema di archiviazione: WAL da
-solo non significa resistenza a ogni perdita di alimentazione.
-
-**Soluzione B — Registro durevole degli eventi e snapshot verificati.**
-Prima della conferma salviamo un evento completo; lo stato si ricostruisce
-riproducendo gli eventi dopo uno snapshot. Funziona se formato, ordine e regole
-di replay sono deterministici e il salvataggio durevole precede la risposta.
-Richiede gestire record incompleti e versioni del formato.
-
-**Esempio.** Il processo si interrompe mentre accetta C. A riparte con tutta
-la transazione presente oppure assente. B riproduce l'evento completo, se
-confermato durevolmente. Nessuno dei due deve trovare C accettato e il suo nonce libero.
-
-Riferimenti: [commit atomico SQLite](https://www.sqlite.org/atomiccommit.html),
-[durabilità e WAL](https://www.sqlite.org/wal.html).
-
-## M07 — Registro verificabile e protezione dalle omissioni
-
-**Stato e priorità: assente, P1 dopo M06.** È il terzo punto di Niccolò.
-
-**Soluzione A — Catena di hash con checkpoint firmati e distribuiti.**
-Ogni evento contiene progressivo e hash del precedente. I partecipanti conservano
-checkpoint con lunghezza e hash di testa. Funziona perché una riscrittura non
-coincide più con il checkpoint già conservato. Senza copie esterne il coordinatore
-può rigenerare la catena o mostrarne un prefisso; la struttura locale non basta.
-
-**Soluzione B — Log Merkle con prove di inclusione e consistenza.**
-Il log produce radici firmate, prove che un evento sia incluso e prove che una
-versione estenda quella precedente. I lettori confrontano le radici ricevute.
-Funziona consentendo verifiche compatte anche su registri grandi; resta necessario
-confrontare le viste e conservare o replicare i dati, non soltanto gli hash.
-
-**Esempio.** Alice conserva una ricevuta per C e il checkpoint che lo include.
-Il server pubblica poi un registro senza C. A rileva l'incompatibilità della
-catena; B rileva la mancata consistenza rispetto alla radice precedente.
-L'attacco diventa documentabile, ma il dato cancellato si recupera solo se ne esiste una copia.
-
-Riferimento per prove di inclusione e consistenza: [Certificate Transparency, RFC 9162](https://www.rfc-editor.org/rfc/rfc9162.html).
-
-## M08 — Trasporto di rete, API e protezione dei messaggi
-
-**Stato e priorità: assente, P2.** Le chiamate Python non sono ancora un servizio.
-
-**Soluzione A — API HTTPS con TLS e firme applicative.**
-Usiamo una libreria/server mantenuti, validazione degli input e limiti espliciti.
-TLS protegge il canale; CROSS mantiene l'autenticità verificabile dei messaggi
-anche fuori dalla connessione. Le risposte di accettazione includono direttamente
-la ricevuta, dopo il commit, invece di richiedere un secondo recupero.
-
-**Soluzione B — Trasporto fra servizi su canali autenticati, con coda durevole.**
-Nodi e coordinatore scambiano buste firmate tramite connessioni autenticate;
-una coda conserva i messaggi finché il destinatario li conferma. Funziona contro
-interruzioni temporanee e identifica i servizi autorizzati. La coda può duplicare
-i messaggi: il destinatario deve essere idempotente, e il suo gestore può vederne
-il contenuto se non aggiungiamo cifratura del payload.
-
-**Esempio.** La connessione cade dopo il salvataggio di C. In A il retry restituisce
-la ricevuta già salvata; in B la coda riconsegna C e il destinatario riconosce
-la duplicazione. C non deve essere conteggiato due volte.
-
-TLS protegge confidenzialità e integrità fra gli estremi del canale, non nasconde
-i dati all'estremo server: [TLS 1.3](https://www.rfc-editor.org/rfc/rfc8446.html).
-
-## M09 — Riduzione della fiducia nel coordinatore e sincronizzazione
-
-**Stato e priorità: ricevute presenti, rete indipendente assente, P2.** Completa
-il primo punto di Niccolò.
-
-**Soluzione A — Invio diretto a più nodi e recupero per identificatore.**
-L'utente conserva la richiesta e la invia ai validatori, che ne salvano il
-contenuto insieme alla ricevuta. Un client può recuperare dati e firme anche
-quando il coordinatore li omette. Funziona se le copie sono effettivamente
-raggiungibili; una firma su un hash non è una copia del contenuto.
-
-**Soluzione B — Repliche che confrontano periodicamente le proprie viste.**
-I nodi scambiano checkpoint, richieste mancanti e attestazioni. Funziona
-individuando omissioni e ricostruendo una vista più completa da più fonti.
-Il confronto non stabilisce da solo un ordine definitivo: eventi incompatibili
-richiedono regole esplicite o un protocollo di consenso adeguato.
-
-**Esempio.** Il coordinatore nasconde un'approvazione. In A il client la recupera
-dal validatore che l'ha emessa. In B un'altra replica ne rileva l'assenza durante
-la sincronizzazione. Le firme permettono di verificarla senza fidarsi del trasportatore.
-
-## M10 — Scadenze e correttezza degli orologi
-
-**Stato e priorità: meccanismo implementato localmente, operatività P2.** È il
-secondo punto di Niccolò. La scelta corrente esclude XRPL per la gestione del tempo.
-
-**Soluzione A — Consolidare i quorum temporali già implementati.**
-Ogni nodo usa un orologio sincronizzato e monitorato con fonti indipendenti;
-può sospendere l'emissione se non riesce a rispettare ε. Conserviamo durevolmente
-ricevute e memoria del tempo, e monitoriamo gli scostamenti. Funziona sotto le
-ipotesi `T > F` e di errore entro ε per gli onesti. NTS può autenticare la
-sincronizzazione NTP, ma non rende infallibile la fonte né elimina tutti gli effetti dei ritardi di rete.
-
-**Soluzione B — Marca temporale esterna firmata.**
-Come alternativa architetturale, un'autorità temporale riconosciuta marca l'hash
-del dato o della ricevuta mediante un protocollo standard. Funziona come prova
-di esistenza entro il tempo attestato, assumendo affidabile quell'autorità.
-Marcare la sola richiesta non prova che i validatori l'abbiano ricevuta: per
-quella proprietà bisogna marcare la loro ricevuta o mantenere il quorum temporale.
-
-**Esempio.** Il termine è alle 15:00. A accetta T ricevute con timestamp più ε
-strettamente precedente al termine, anche se il server le vede alle 15:01.
-B permette a un verificatore di controllare il token dell'autorità temporale,
-ma deve specificare se sta provando l'esistenza della richiesta o la sua ricezione.
-
-Riferimenti: [NTS, RFC 8915](https://www.rfc-editor.org/rfc/rfc8915.html),
-[marcatura temporale, RFC 3161](https://www.rfc-editor.org/rfc/rfc3161.html).
-
-## M11 — Chiusura definitiva e prove ancora in transito
-
-**Stato e priorità: aperto, P2 dopo persistenza e rete.** `IN_ATTESA_DI_PROVE`
-è intenzionalmente non definitivo. Il semplice passaggio dell'ora non dimostra
-che non arriverà una prova tempestiva.
-
-**Soluzione A — Finestra di consegna e contestazione fissata in anticipo.**
-Distinguiamo il termine di ricezione nei nodi dal termine di presentazione delle
-prove al registro condiviso. Pubblichiamo un risultato provvisorio e permettiamo
-contestazioni con ricevute verificabili. Funziona se assumiamo un limite ai ritardi
-e almeno un canale disponibile per contestare. Cambia la regola corrente: anche
-una prova tempestiva presentata oltre la finestra può essere esclusa. Va dichiarato prima.
-
-**Soluzione B — Disseminazione affidabile e chiusura su un insieme condiviso.**
-Prima della chiusura rendiamo disponibili ai nodi i certificati completi di
-tempestività e i dati; il protocollo concorda poi l'insieme finale e ne firma
-l'impronta. Funziona solo con regole di disponibilità, inclusione e consenso
-esplicite. Un quorum che firma una lista senza verificarne la completezza non basta.
-È una soluzione più impegnativa e richiede ridefinire cosa costituisce un'ammissione completa.
-
-**Esempio.** La prova di Alice arriva al server alle 15:01. A la accetta se la
-finestra pubblicata è ancora aperta. B la recupera dagli altri nodi prima di
-concordare il risultato. Con ritardi arbitrari e dati non disponibili, non
-possiamo promettere insieme chiusura entro un tempo fisso e recupero di ogni prova tardiva.
-
-## M12 — Replay, idempotenza, concorrenza e rollback
-
-**Stato e priorità: controlli in memoria presenti, completamento P1.**
-
-**Soluzione A — Vincoli unici e operazioni atomiche nel database.**
-Registriamo unicità di sessione/autore/nonce e di contributo/validatore, con
-identificatori di richiesta stabili. Un retry identico restituisce il risultato
-salvato; lo stesso nonce con contenuto diverso viene rifiutato. Funziona anche
-con due richieste simultanee perché l'unicità è fatta rispettare dall'archivio.
-
-**Soluzione B — Sequenze per autore e verifica dei checkpoint al ripristino.**
-Oltre all'impronta della richiesta, ogni autore usa un contatore legato alla
-sessione. I nodi persistono il massimo ammesso e, dopo un recupero da backup,
-confrontano il proprio checkpoint con copie indipendenti. Funziona contro il
-riuso di messaggi e rende rilevabile un rollback; un contatore salvato soltanto
-nello stesso backup vecchio non protegge dal rollback. Occorre definire anche buchi e riordino.
-
-**Esempio.** Due thread inviano lo stesso contributo, poi il servizio riparte da
-un backup. A impedisce il doppio inserimento concorrente. B rileva che il backup
-è precedente al checkpoint noto agli altri nodi e sospende l'ammissione finché recupera lo stato.
-
-## M13 — Protezione dei dati archiviati e dei backup
-
-**Stato e priorità: assente, P1/P2 secondo i dati conservati.** Integrità,
-riservatezza e ripristino sono obiettivi distinti.
-
-**Soluzione A — Cifratura dell'archivio e custodia separata della chiave.**
-Usiamo un componente mantenuto per cifrare il database o il volume, con accessi
-limitati e backup coerenti anch'essi protetti. Funziona contro il furto di dischi
-o copie di backup senza la chiave. Non protegge necessariamente da un processo
-server già compromesso e autorizzato a leggere i dati.
-
-**Soluzione B — Cifrare soltanto i campi sensibili prima della scrittura.**
-Un formato autenticato lega il ciphertext alla sessione e al tipo di record;
-le chiavi stanno in un archivio separato. Funziona limitando ciò che una copia
-del database rivela, ma lascia visibili campi e indici non cifrati. Se si usa
-AES-GCM, la gestione delle chiavi e l'unicità del nonce per chiave sono obbligatorie.
-
-**Esempio.** Viene copiata la directory dei backup. A rende illeggibile il backup
-senza la chiave del volume/archivio. B lascia leggibili gli identificatori pubblici
-ma protegge i payload sensibili. Nessuna delle due sostituisce ricevute e log verificabile.
-
-Riferimento per la cifratura autenticata: [NIST SP 800-38D](https://csrc.nist.gov/pubs/sp/800/38/d/final).
-
-## M14 — Riservatezza dei contenuti verso il coordinatore
-
-**Stato e priorità: protocollo applicativo assente, P3.** Un hash opaco di 32
-byte non dimostra da solo che un valore sia nascosto bene. Valori prevedibili
-richiedono casualità appropriata in uno schema di commitment analizzato.
-
-**Soluzione A — Cifratura sul client per i destinatari autorizzati.**
-Il client cifra il contenuto con uno schema mantenuto; il coordinatore conserva
-e inoltra soltanto ciphertext. Funziona perché il server non possiede la chiave
-di apertura. Va deciso chi può leggere, come distribuire le chiavi e quali
-metadati restano pubblici. Una chiave condivisa anche con il server non lo esclude.
-
-**Soluzione B — Commitment con casualità segreta e prove della proprietà richiesta.**
-L'utente pubblica un commitment di uno schema studiato e, se necessario, una
-prova senza rivelare il valore. Funziona separando il vincolo sul dato dalla sua
-apertura, a condizione che lo schema garantisca hiding e binding nel modello scelto.
-Non è automaticamente un modo per calcolare qualsiasi risultato sui dati nascosti.
-
-**Esempio.** Alice invia un'offerta economica. A la rende leggibile soltanto alla
-commissione autorizzata. B permette di verificare che l'offerta rispetti un limite
-senza pubblicarla, usando una prova specifica collegata al commitment.
-
-## M15 — Controllo distribuito dei segreti
-
-**Stato e priorità: assente, P3 se la traccia lo richiede.** Non va reintrodotto
-il vecchio Shamir didattico come se bastasse a completare il protocollo.
-
-**Soluzione A — Condivisione verificabile del segreto e quote cifrate.**
-Un detentore divide il segreto con soglia K e permette di verificare la coerenza
-delle quote mediante un protocollo studiato. Le quote sono consegnate cifrate e
-autenticate. Funziona impedendo la ricostruzione da meno di K quote nel modello
-previsto; K detentori collusi possono ricostruire. Il detentore iniziale conosce il segreto.
-
-**Soluzione B — Generazione distribuita e operazioni crittografiche a soglia.**
-Per una chiave di decifratura o firma, un protocollo DKG e uno schema a soglia
-compatibile evitano di creare la privata completa su un singolo nodo. Funziona
-distribuendo il potere di usare quella chiave. Non sostituisce automaticamente
-la gestione di un qualsiasi segreto applicativo; richiede primitive e librerie
-specifiche. La soglia sulle firme CROSS indipendenti attuale non è una firma CROSS a soglia.
-
-**Esempio.** Il risultato deve restare nascosto fino alla chiusura. A distribuisce
-quote dell'apertura e ricostruisce soltanto al verificarsi della regola concordata.
-B cifra sotto una chiave collettiva e richiede K contributi di decifratura, senza
-ricostruire la privata collettiva su un singolo server.
-
-## M16 — Reveal e partecipante che smette di collaborare
-
-**Stato e priorità: non definito, P3.** È il settimo punto di Niccolò. Prima
-va stabilito se la traccia richieda davvero uno svelamento.
-
-**Soluzione A — Apertura recuperabile mediante quote verificabili.**
-Prima di ammettere il commitment, i nodi verificano che esistano abbastanza
-quote corrette dei dati necessari all'apertura. Una condizione di recupero
-esplicita autorizza la ricostruzione dopo il mancato reveal. Funziona se quote
-e commitment sono collegati correttamente e ci sono abbastanza detentori disponibili.
-Un quorum colluso potrebbe anticipare l'apertura: la soglia è anche un confine di privacy.
-
-**Soluzione B — Regola deterministica per il mancato reveal.**
-La configurazione stabilisce esclusione, valore sostitutivo o penalità secondo
-il caso d'uso, così il protocollo termina anche senza quel partecipante.
-Funziona come regola di avanzamento, ma non recupera il dato. Non è adatta se
-l'esclusione permette di manipolare il risultato, per esempio scegliendo se
-contribuire a un'estrazione casuale dopo aver visto gli altri contributi.
-
-**Esempio.** Alice non apre la sua offerta. A recupera l'apertura attraverso K
-quote valide, quando il protocollo lo autorizza. B tratta l'offerta come ritirata
-secondo la regola pubblicata. La traccia deve stabilire quale dei due comportamenti sia corretto.
-
-## M17 — Validità degli input, delle prove e delle modifiche
-
-**Stato e priorità: solo formato nella demo, P3 ma indispensabile sulla traccia.**
-Il controllo applicativo attuale non dimostra cosa contenga il commitment.
-
-**Soluzione A — Validazione deterministica quando i dati possono essere letti.**
-Definiamo una funzione di transizione con input, stato precedente e vincoli
-espliciti; ogni validatore la esegue autonomamente. Funziona perché la stessa
-operazione può essere riprodotta e confrontata. Richiede un ordine condiviso
-quando due modifiche competono sullo stesso stato.
-
-**Soluzione B — Prova specifica quando il dato deve restare nascosto.**
-Usiamo un sistema di prova mantenuto per dimostrare esattamente la relazione
-fra commitment, stato precedente e modifica ammessa. Funziona se il circuito
-o la relazione codifica tutti i vincoli della traccia e lega le variabili pubbliche
-corrette. Una prova di intervallo non dimostra da sola casualità o correttezza di una formula.
-
-**Esempio.** Una risorsa può aumentare al massimo di D. A ricalcola l'aumento e
-controlla lo stato iniziale. B verifica una prova che lega la modifica nascosta
-al vecchio e al nuovo commitment. Se l'aumento deve essere anche casuale, occorre
-un meccanismo verificabile aggiuntivo per la casualità.
-
-## M18 — Correttezza e completezza del risultato finale
-
-**Stato e priorità: assente, P3 per il calcolo; dipende da M09 e M11.**
-Un insieme di firme valide non dimostra che il server abbia usato tutti gli input.
-
-**Soluzione A — Ricalcolo indipendente su un insieme di input concordato.**
-Pubblichiamo lista finale, dati ammessi, regola e risultato; i nodi ripetono il
-calcolo e firmano lo stesso digest. Funziona se gli input possono essere divulgati
-e l'insieme è stato chiuso correttamente. Non risolve da solo la censura in fase di raccolta.
-
-**Soluzione B — Calcolo riservato con risultato verificabile.**
-Una prova del calcolo, oppure un protocollo MPC appropriato con le garanzie
-necessarie, lega risultato e lista dei commitment ammessi. Funziona se dimostra
-la relazione applicativa esatta e include l'impronta dell'insieme finale. MPC
-non implica automaticamente verifica pubblica né disponibilità del risultato.
-
-**Esempio.** Il risultato è la somma dei contributi ammessi. A permette a chiunque
-di rifare la somma sui dati pubblici. B può provare la somma senza pubblicare i
-singoli valori. Entrambe devono riferirsi alla stessa lista finale: omettere C
-e sommare correttamente il resto non è un risultato completo.
-
-## M19 — Protezione dei metadati: IP, orari e collegabilità
-
-**Stato e priorità: assente, P3.** È il sesto punto di Niccolò. Pseudonimato
-e anonimato di rete sono proprietà diverse.
-
-**Soluzione A — Relayer separato dal coordinatore e minimizzazione dei log.**
-Un intermediario inoltra le richieste firmate senza aggiungere identificatori
-superflui; il coordinatore vede il relayer come sorgente. Funziona contro la
-visibilità diretta dell'IP presso il coordinatore. Il relayer vede il mittente;
-collusione, log condivisi e correlazioni temporali possono annullare il vantaggio.
-
-**Soluzione B — Trasporto anonimo o mescolamento con invii a lotti.**
-Valutiamo una rete o un protocollo di anonimizzazione mantenuto e adeguato al
-modello di osservatore, con batching e dimensioni meno riconoscibili dove utile.
-Funziona riducendo collegamenti diretti e alcune correlazioni, con costi di
-latenza e disponibilità. Ritardi casuali da soli non nascondono l'IP; non
-promettiamo protezione da un osservatore globale senza un'analisi specifica.
-
-**Esempio.** Alice invia un contributo da casa. A impedisce al coordinatore di
-leggere direttamente il suo IP, ma il relayer lo conosce. B tenta di rendere
-meno distinguibile il suo invio tra quelli di altri utenti; il margine prima
-della scadenza deve includere la latenza introdotta.
-
-## M20 — Disponibilità, assenze, censura e abuso delle risorse
-
-**Stato e priorità: solo gestione logica dei quorum, P2.** La verifica delle
-firme e la conservazione di ricevute hanno costi; un account non equivale a una persona.
-
-**Soluzione A — Budget e limiti espliciti agli ingressi.**
-Imponiamo dimensioni massime, controlli economici prima delle verifiche costose,
-limiti alle sfide pendenti e code con risorse limitate. Funziona contenendo il
-costo di richieste abusive; le quote per chiave possono essere aggirate creando
-account, mentre i limiti per IP possono penalizzare utenti che condividono una rete.
-
-**Soluzione B — Percorsi ridondanti e recupero da più nodi.**
-Client e validatori possono inviare o recuperare messaggi da più repliche;
-ritentano con identificatori stabili e misurano la salute dei nodi. Funziona
-contro guasti o censura di un singolo canale, se esiste un percorso alternativo.
-Se mancano T ricevute o Q approvazioni non abbassiamo automaticamente le soglie.
-
-**Esempio.** Il coordinatore è sovraccarico e un validatore non risponde. A evita
-che richieste enormi consumino tutte le risorse. B permette di usare altri nodi;
-il protocollo procede solo se il numero disponibile resta sufficiente per T e Q.
-
-## M21 — Test avversariali, prestazioni e riproducibilità operativa
-
-**Stato e priorità: 36 test locali presenti, completamento P1/P2.** Il numero
-dei test non misura da solo la copertura o la sicurezza.
-
-**Soluzione A — Test di proprietà e guasti controllati.**
-Generiamo configurazioni N/Q/T diverse, messaggi malformati e sequenze di eventi;
-interrompiamo i processi durante commit, risposta, replica e recupero. Funziona
-verificando invarianti come unicità del voto, durabilità della ricevuta e assenza
-di riaperture dopo rollback. Servono anche test dei confini Python/C per input non validi.
-
-**Soluzione B — Esecuzione con processi separati e revisione indipendente.**
-Una procedura riproducibile avvia client, coordinatore e nodi, introduce ritardi,
-disconnessioni e orologi difettosi e misura tempi, memoria e traffico. Un revisore
-prova attacchi sul flusso completo. Funziona mostrando problemi che una demo in
-un processo non espone; l'esito positivo di una campagna non dimostra assenza di tutti i bug.
-
-**Esempio.** Il server salva C ma cade prima di rispondere. A controlla che il
-retry ritrovi una sola accettazione. B verifica lo stesso scenario su processi
-distinti e misura se le ricevute temporali arrivano con un margine sufficiente.
-Misuriamo anche l'aumento di firme e byte al crescere di N, Q e T, prima di promettere scalabilità.
-
-## M22 — Eventuale ancoraggio pubblico richiesto dalla traccia
-
-**Stato e priorità: assente, P3 e condizionale.** È incluso perché compariva
-nella valutazione delle garanzie. Non reintroduce XRPL per il tempo e non
-autorizza integrazioni, transazioni o spese. Se la traccia non richiede una
-blockchain, una percentuale zero qui può essere una scelta di scope corretta.
-
-**Soluzione A — Ancorare soltanto checkpoint e risultato.**
-Se richiesto, pubblichiamo impronta della configurazione, radice del registro
-finale e digest del risultato su un registro pubblico adatto alla traccia.
-Funziona fornendo un riferimento esterno per confrontare le versioni. Non rende
-disponibili i dati, non dimostra che siano completi e non verifica il calcolo.
-
-**Soluzione B — Far verificare al livello applicativo della blockchain una parte delle regole.**
-Un contratto o componente equivalente, se la piattaforma lo permette, controlla
-ammissione, unicità o una prova del risultato. Funziona spostando quei controlli
-su una macchina di stato condivisa, ma richiede valutare costi, privacy, finalità
-e supporto alle primitive. CROSS non può essere considerato verificabile nativamente
-senza verificarne la disponibilità sulla piattaforma; la catena non diventa post-quantum per associazione.
-
-**Esempio.** Dopo il risultato il coordinatore pubblica una lista diversa. A
-permette di confrontarla con il digest già ancorato. B può impedire una seconda
-finalizzazione incompatibile secondo le regole del contratto. Una lista iniziale
-incompleta resta un problema anche se il suo hash è registrato immutabilmente.
-
-## 5. Ordine di lavoro consigliato
-
-| Fase | Aree | Risultato concreto da verificare |
+| Reduce confidence in the coordinator | Received implemented; independent communication and synchronization absent. | M07, M09, M11, M20. |
+| Deadline and clock | Choose a solution with validator receipts; no XRPL. There are no real nodes and operational watch management. | M10, M11. |
+| Log append-only | Not implemented. A single local chain is not enough against rewriting and omissions. | M06, M07. |
+| Separating domains | Already present; it must be preserved in extensions. | M04. |
+| Revocation or rotation of validators | Not implemented during the session. | M05, M01. |
+| Network Metadata: IP and Time | Do not implement metadata-specific transport or protections. | M08, M19. |
+| Reveal and non-cooperation | Reveal phase not yet defined in the current protocol. | M14–M16, M18. |
+
+## M01 ... Model of trust, configuration and choice of thresholds
+
+**Status and priority: partial, P1.** Today the coordinator proposes the initial configuration. A
+threshold in the correct range may still be inadequate.
+
+**Solution A. Configuration explicitly approved before the session.** Participants check list of
+validators, fingerprint, Q, T, expiration and rule; the committee signs approval of the initial
+manifest according to a procedure agreed out of the session. It works because the coordinator cannot
+present a different configuration without the imprint changing. An initial point of trust on the
+keys and independence of validators remains necessary.
+
+**Solution B. Configuration policy verified by nodes.** We define explicit criteria with respect
+to F and to tolerated failures, plus a procedure to approve only the configurations of subsequent
+sessions. It works because nodes reject thresholds or substitutions out of politics. If there may be
+competing proposals, we also need a shared order: signatures alone do not create it.
+
+**ESem.** In a session S, N, Q and T are fixed. The coordinator wants to reduce Q because some nodes
+are absent: both solutions prevent the exchange in S. In A a new session is negotiated; in B the new
+configuration must also exceed the policy controls and the authorization provided.
+
+## M02 ... Registration, Rights and Multiple Accounts
+
+**Status and priority: registration present, application rights to be defined, P3.** A key
+identifies an account, not a person.
+
+**Solution A. (Authorized entity)** An institution controls the application requirement and signs a
+valid title for that session. The protocol records the use of the title. It works if the issuer
+prevents multiple undue ratings; the liability for admission remains its own.
+
+**Solution B. Credential with proof of possession not connected and nullifier.** The user
+demonstrates that he has a valid title without publishing it directly and produces a unique expense
+identifier for that session. It works against re-use of the same title and can reduce linkability.
+It does not prevent a defective issue from assigning two titles to the same person; it requires a
+system of credentials and evidence already studied, not an invented ZKP.
+
+**Example.** Alice opens many accounts but owns only one electoral title. In A the second use of the
+same title is rejected; in B the second nullifier is rejected equal, without having to publish
+Alice's identity.
+
+## M03 - Reliability of official CROSS integration
+
+**Status and priority: integrated official backend, P1/P2 consolidation.** No need to rewrite
+CROSS. You need to keep the link to the authors code playable and verifiable, already fixed in the
+repository.
+
+**Solution A. Keep the upstream reference with automatic checks.** We check official manifest,
+version, parameters, dimensions and vectors for any modification of the binding or compiler. It
+works because it intercepts format changes and divergences from expected results. The vectors do not
+equal a security audit.
+
+**Solution B. Use a maintained distribution with supported wrapper.** If available for version,
+platform and required parameters, we adopt a maintained library that includes CROSS, fixing version
+and source and verifying it with the same vectors. It works by reducing the integration code that we
+must maintain; it does not automatically make any distribution secure.
+
+**Example.** A new build produces a different format signature. A blocks the update when vectors
+diverge; B requires explicit migration of the backend and suite into the configuration, without
+silently accepting old signatures.
+
+Current backend source: [implementation of CROSS
+authors](https://github.com/CROSS-signature/CROSS-implementation).
+
+## M04 ... Separate domains, serialization and versions
+
+**Status and priority: already implemented, permanent requirement P1.** It is the fourth point of
+Niccolò. Messages include protocol, action and configuration footprint.
+
+**Solution A. Extend the current canonical format with strict layouts.** Each operation has
+allowed fields, types, limits and precise version. The verifier reconstructs the canonical bytes
+before checking the signature. It works by preventing the same signature from authorising different
+actions or ambiguous representations.
+
+**Solution B. Adopt a standard deterministic coding.** A maintained library manages the canonical
+representation, with domain labels and version defined by our protocol. It works by improving
+interoperability between languages; however, a strict application scheme is needed.
+
+**Example.** A signature on `PUBBLICA` is re-presented as `ATTESTA`. A and B produce different bytes
+for the two actions and the verification fails. A future revocation must in turn have a domain
+distinct from the approvals.
+
+## M05
+
+**Status and priority: not implemented operationally, P2.** Includes the fifth point of Niccolò and
+the keys of users, coordinator and validators.
+
+**Solution A. Protected key storage and rotation between sessions.** We store private keys
+in an encrypted archive or signature service compatible with CROSS, with limited access and
+controlled recovery. In emergency, we interrupt the session in an explicit procedure and start a new
+one. It works by keeping the old configuration unchanged; it is necessary to decide what to recover
+and how to process the already definitive results. Not all hardware devices support CROSS.
+
+**Solution B. Certified revocation with epochs and transition rules.** A quorum of governance
+authorizes the replacement and fixes its point of effectiveness, with shared order of events. It
+works by distinguishing the permissions before and after the change. It is not enough to delete a
+key from the list: you have to specify thresholds, previous signatures and consequences of
+retroactive compromise.
+
+**Esempio.** V loses control of its private company. It blocks new operations and re-establishes the
+S2 Committee. B activates a new era and checks every signature compared to that time. In both cases
+a simple timestamp declared by V does not prove that its signature precedes the theft.
+
+## M06 - Persistence, atomicity and restoration
+
+**Status and priority: absent, P1; first suggested intervention.** It serves both the coordinator
+and the time nodes, which today lose the status when restarted.
+
+**Solution A. SQLite with transactions and constraints.** A transaction saves request, consumed nonce, outcome, receipt and event. The positive response starts after commit. It works because
+it does not leave partial acceptances and allows the restoration of the same state. The durability
+also depends on the synchronization settings and the storage system: WAL alone does not mean
+resistance to any power loss.
+
+**Solution B. Durable event register and verified snapshots.** Before confirmation we save a
+complete event; the status is rebuilt by reproducing events after a snapshot. It works if format,
+order and replay rules are deterministic and the durable save precedes the response. It requires
+managing incomplete records and format versions.
+
+**Example.** The process stops while accepting C. A starts again with all the transaction present or
+absent. B reproduces the complete event, if it was durably committed. Neither must find C accepted and
+its nonce free.
+
+References: [atomic commit SQLite](https://www.sqlite.org/atomiccommit.html), [Durability and
+WAL](https://www.sqlite.org/wal.html).
+
+## M07 - Verifiable Register and Protection from Omissions
+
+**Status and priority: absent, P1 after M06.** This addresses Niccolò’s third point.
+
+**Solution A. Checkpoint chain with signed and distributed checkpoints.** Each event contains a sequence number and the hash of its predecessor. Participants keep checkpoints with length and hash of the
+head event. It works because a rewrite no longer coincides with the already preserved checkpoint. Without
+external copies the coordinator can regenerate the chain or show a prefix; the local structure is
+not enough.
+
+**Solution B. Merkle log with inclusion and consistency proofs.** The log produces signed roots,
+evidence that an event is included and evidence that a version extends the previous one. Readers
+compare the received roots. It works by allowing compact checks even on large registers; it remains
+necessary to compare the views and keep or replicate the data, not only the hash.
+
+**Example.** Alice retains a receipt for C and the checkpoint that includes it. The server then
+publishes a registry without C. A detects the incompatibility of the chain; B detects the
+non-consistentness with the previous root. The attack becomes documentable, but the deleted data
+recovers only if a copy exists.
+
+Reference for inclusion and consistency tests: [Transparency Certificate, RFC
+9162](https://www.rfc-editor.org/rfc/rfc9162.html).
+
+## M08 - Network transport, API and message protection
+
+**Status and priority: absent, P2.** Python calls are not yet a service.
+
+**Solution A. HTTPS API with TLS and application signatures.** We use a maintained
+library/server, validation of inputs and explicit limits. TLS protects the channel; CROSS keeps the
+authenticity of messages verifiable even outside the connection. Acceptance responses include
+receipt directly, after commit, instead of requesting a second recovery.
+
+**Solution B. Transport between services on authenticated channels, with a durable queue.** Nodes
+and coordinators exchange signed envelopes through authenticated connections; a queue keeps messages
+until the recipient confirms them. It works against temporary interruptions and identifies the
+authorized services. The queue can duplicate messages: the recipient must be idempotent, and its
+manager can see the content if we do not add Payload encryption.
+
+**Example.** The connection falls after saving C. In A the retry returns the receipt already saved;
+in B the queue returns C and the recipient recognizes the duplication. C must not be counted twice.
+
+TLS protects confidentiality and integrity between the extremes of the channel, does not hide data
+from the extreme server: [TLS 1.3](https://www.rfc-editor.org/rfc/rfc8446.html).
+
+## M09 - Reduce confidence in the coordinator and synchronization
+
+** Status and priorities: receipts present, independent network absent, P2.** Complete the first
+point of Niccolò.
+
+**Solution A. Direct sending to multiple nodes and recovery by identifier.** The user retains
+the request and sends it to the validators, who save the content along with the receipt. A client
+can recover data and signatures even when the coordinator omits them. It works if the copies are
+actually reachable; a signature on a hash is not a copy of the content.
+
+**Solution B. Replies that periodically compare your views.** The nodes exchange checkpoints,
+missing requests and attestations. It works by identifying omissions and rebuilding a more complete
+view from multiple sources. The comparison does not establish a definitive order alone: incompatible
+events require explicit rules or an appropriate consent protocol.
+
+**Example.** The coordinator hides an approval. In A the client retrieves it from the validator that
+issued it. In B another replica detects its absence during synchronization. The signatures allow to
+verify it without trusting the transporter.
+
+## M10 - Expires and correctness of watches
+
+**Status and priority: locally implemented mechanism, operation P2.** It is the second point of
+Niccolò. The current choice excludes XRPL for the management of time.
+
+**Solution A. - Consolidate the time quorums already implemented.** Each node uses a synchronized and
+monitored clock with independent sources; it can suspend the emission if it fails to comply with ε.
+We keep time and time memory, and monitor deviations. It works under assumptions `T > F` and error
+within ε for honest. NTS can authenticate NTP sync, but does not make the source infallible nor
+eliminate all the effects of network delays.
+
+**Solution B. - Signed external time mark.** As an architectural alternative, a recognized temporal
+authority marks the hash of the data or receipt by means of a standard protocol. It works as proof
+of existence within the time attested, assuming that authority reliable. Marking the request only
+does not prove that the validators have received it: for that property you must mark their receipt
+or maintain the time quorum.
+
+**Example.** The deadline is at 15:00. A accepts T received with timestamp plus ε strictly prior to
+the end, even if the server sees them at 15:01. B allows a verifier to check the token of the
+temporal authority, but must specify whether it is proving the existence of the request or its
+receipt.
+
+References: [NTS, RFC 8915](https://www.rfc-editor.org/rfc/rfc8915.html), [time marking, RFC
+3161](https://www.rfc-editor.org/rfc/rfc3161.html).
+
+## M11 ... Final closure and tests still in transit
+
+**Status and priority: open, P2 after persistence and network.** `IN_ATTESA_DI_PROVE` The simple
+passing of the hour does not prove that there will be no timely test.
+
+**Solution A. Delivery and objection window set in advance.** We distinguish the time limit of
+receipt in the nodes from the time limit of submission of the tests to the shared register. We
+publish a provisional result and allow disputes with verifiable receipts. It works if we assume a
+limit to delays and at least one available channel to contest. Change the current rule: even a
+timely test submitted beyond the window can be excluded. It must be stated first.
+
+**Solution B. Reliable disclosure and closure on a shared set.** Before closing, we make available
+to the nodes the complete certificates of timeliness and data; the protocol then agrees the final
+set and signs the imprint. It works only with rules of availability, inclusion and explicit consent.
+A quorum signing a list without checking the completeness is not enough. It is a more challenging
+solution and requires redefining what constitutes a complete admission.
+
+**Example.** The Alice test arrives at the server at 15:01. A accepts it if the published window is
+still open. B recovers it from other nodes before agreeing the result. With arbitrary delays and
+data not available, we cannot promise to close it together within a fixed time and recover any late
+test.
+
+## M12 ...Replay, idempotence, competition and rollback
+
+**Status and priority: memory checks present, completion P1.**
+
+**Solution A. Unique clamps and atomic operations in the database.** We record unique
+session/author/nonce and contribution/validator, with stable request identifiers. An identical retry
+returns the saved result; the same nonce with different content is rejected. It also works with two
+simultaneous requests because the uniqueness is enforced by the archive.
+
+**Solution B. Sequences per author and checkpoints to restore.** In addition to the printout of
+the request, each author uses a session-related counter. The nodes remain the maximum allowed and,
+after a backup recovery, compare their checkpoint with independent copies. It works against re-use
+of messages and makes a rollback detectable; a counter saved only in the same old backup does not
+protect from rollback. It is also necessary to define holes and reorder.
+
+**Example.** Two threads send the same contribution, then the service restarts from a backup. A
+prevents double-entry competitor. B notes that the backup is prior to the checkpoint known to the
+other nodes and suspends admission until it recovers the status.
+
+## M13 • Protection of stored data and backups
+
+**Status and priority: absent, P1/P2 according to stored data.** Integrity, confidentiality and
+restoration are distinct objectives.
+
+**Solution A. Encrypting the archive and separate key case.** We use a retained component to
+encrypt the database or volume, with limited accesses and consistent backups also protected. It
+works against the theft of disks or backup copies without the key. It does not necessarily protect
+from a server process already compromised and authorized to read data.
+
+**Solution B. Encrypt only sensitive fields before writing.** An authenticated format links the
+ciphertext to the session and record type; the keys are in a separate archive. It works by limiting
+what a copy of the database reveals, but leaves visible unencrypted fields and indexes. If you use
+AES-GCM, key management and key uniqueness are mandatory.
+
+**Example.**The backup directory is copied.A makes backup unreadable without the volume/archive
+key.B leaves public identifiers readable but protects sensitive payloads. Neither replaces receipts
+and verifiable log.
+
+Authenticated encryption reference: [NIST SP 800-38D](https://csrc.nist.gov/pubs/sp/800/38/d/final).
+
+## M14 - Content confidentiality towards the coordinator
+
+**Status and priority: application protocol absent, P3.** A 32-byte opaque hash alone doesn't prove
+that a value is well hidden. Predictable values require appropriate randomness in an analyzed
+commitment scheme.
+
+**Solution A. Client Encryption for Authorized Recipients.** The client encrypts the content
+with a maintained schema; the coordinator retains and forwards only cyphertext. It works because the
+server does not have the opening key. It must be decided who can read, how to distribute keys and
+which metadata remain public. A key shared with the server does not exclude it.
+
+**Solution B. Commitment with secret randomness and evidence of the property required.** The user
+publishes a commitment of a scheme studied and, if necessary, a test without revealing the value. It
+works by separating the constraint on the data from its opening, provided that the scheme guarantees
+hiding and binding in the chosen model. It is not automatically a way to calculate any result on the
+hidden data.
+
+**Example.** Alice sends an economic offer. A makes it readable only to the authorized commission. B
+allows you to verify that the offer respects a limit without publishing it, using a specific test
+linked to the commitment.
+
+## M15 - Distributed Secret Control
+
+**Status and priority: absent, P3 if track requires it.** The old didactic Shamir should not be
+reintroduced as if it were enough to complete the protocol.
+
+**Solution A. Verifiable sharing of secrets and encrypted shares.** A holder divides the secret
+with a K threshold and allows to verify the consistency of quotas through a protocol studied. The
+quotas are delivered encrypted and authenticated. It works by preventing the reconstruction by less
+than K quotas in the expected model; K collused holders can rebuild. The initial holder knows the
+secret.
+
+**Solution B. Distributed generation and threshold encryption operations.** For a decryption or
+signature key, a DKG protocol and a compatible threshold scheme avoid creating complete private on a
+single node. It works by distributing the power to use that key. It does not automatically replace
+the management of any application secret; it requires primitive and specific libraries. The
+threshold on existing independent CROSS signatures is not a threshold CROSS signature.
+
+**Example.** The result must remain hidden until closing. A distributes opening quotas and rebuilds
+only when the agreed rule occurs. B digit under a collective key and requires K deciphering
+contributions, without rebuilding the collective private on a single server.
+
+## M16 - Reveal and participant who stops cooperating
+
+**Status and priority: undefined, P3.** It is the seventh point of Niccolò. First it must be
+established if the track really requires a disclosure.
+
+**Solution A. Opening recoverable by verifiable odds.** Before admitting the commitment, nodes
+check that there are enough correct odds of the data necessary for the opening. An explicit recovery
+condition authorizes the reconstruction after the failure to reveal. It works if quotas and
+commitments are connected correctly and there are enough holders available. A collusion quorum could
+anticipate the opening: the threshold is also a privacy boundary.
+
+**Solution B. Deterministic rule for non-reveal.** The configuration establishes exclusion,
+replacement value or penalty according to the case of use, so the protocol ends without that
+participant. It works as a progress rule, but does not recover the data. It is not suitable if the
+exclusion allows you to manipulate the result, for example choosing whether to contribute to a
+random extraction after seeing the other contributions.
+
+**Example.** Alice does not open its offer. A recovers the opening through valid K odds, when the
+protocol authorizes it. B treats the offer as withdrawn according to the published rule. The track
+must determine which of the two behaviors is correct.
+
+## M17 ... Validity of inputs, tests and modifications
+
+**Status and priority: only format in demo, P3 but indispensable on track.** The current application
+control does not show what the commitment contains.
+
+**Solution A. Deterministic validation when data can be read.** We define a transition function
+with input, previous status and explicit constraints; each validator performs it independently. It
+works because the same operation can be played and compared. It requires a shared order when two
+changes compete on the same status.
+
+**Solution B. Specific test when the data must remain hidden.** We use a maintained test system
+to demonstrate exactly the relationship between commitment, previous status, and allowed
+modification. It works if the circuit or report encodes all the tracks constraints and binds the
+correct public variables. An interval test does not demonstrate by itself the randomity or
+correctness of a formula.
+
+**Example.** A resource can increase to maximum D. Recalculate the increase and check the initial
+status. B checks a test that binds the hidden change to the old and new commitment. If the increase
+must be even random, an additional verifiable mechanism is needed for randomness.
+
+## M18 ... Correctness and completeness of the final result
+
+**Status and priority: absent, P3 for calculation; depends on M09 and M11.** A set of valid
+signatures doesn't prove that the server used all the inputs.
+
+**Solution A. Independent recalculation on an agreed input set.**We publish final list, allowed
+data, rule and result; nodes repeat the calculation and sign the same digest. It works if the inputs
+can be disclosed and the set has been closed correctly. It does not solve the censorship alone
+during the collection phase.
+
+**Solution B. Reserved calculation with verifiable result.** A calculation test, or an
+appropriate MPC protocol with the necessary warranties, alloy result and list of commitments
+allowed. It works if it demonstrates the exact application relationship and includes the footprint
+of the final set. MPC does not automatically imply public verification or availability of the
+result.
+
+**Example.** The result is the sum of the contributions allowed.A allows anyone to redo the sum on
+the public data.B can try the sum without publishing the individual values. Both must refer to the
+same final list: omit C and add the rest correctly is not a complete result.
+
+## M19 - Metadata protection: IP, time and connection
+
+**Status and priority: absent, P3.** It is the sixth point of Niccolò. Pseudonimate and network
+anonymity are different properties.
+
+**Solution A. Relayer separated from the coordinator and minimization of logs.** An intermediary
+forwards signed requests without adding unnecessary identifiers; the coordinator sees the relay as
+source. It works against the direct visibility of the IP at the coordinator. The relay sees the
+sender; collusion, shared logs and temporal correlations can cancel the advantage.
+
+**Solution B. Anonymous transport or mixing with batch mails.** We evaluate a network or an
+anonymization protocol maintained and adapted to the observer model, with less recognizable batching
+and dimensions where useful. It works by reducing direct links and some correlations, with latency
+and availability costs. Random delays alone do not hide the IP; we do not promise protection from a
+global observer without a specific analysis.
+
+**Example.** Alice sends a contribution from home. A prevents the coordinator from reading directly
+his IP, but the reporter knows it. B tries to make it less distinguishable from those of other
+users; the margin before the expiration must include the latency introduced.
+
+## M20 ... Availability, absence, censorship and resource abuse
+
+**Status and priority: Only logical quorum management, P2.** Verification of signatures and
+retention of receipts have costs; an account does not equal a person.
+
+**Solution A. Budget and explicit input limits.** We impose maximum dimensions, economic controls
+before expensive checks, limits to pending challenges and queues with limited resources. It works by
+containing the cost of abusive requests; key quotas can be bypassed by creating accounts, while IP
+limits can penalise users sharing a network.
+
+**Solution B. redundant paths and recovery from multiple nodes.** Client and validators can send
+or retrieve messages from multiple replicas; they try with stable identifiers and measure the health
+of the nodes. It works against failures or censorship of a single channel, if there is an
+alternative path. If there is no T received or Q approvals we do not automatically lower the
+thresholds.
+
+**Example.** The coordinator is overloaded and a validator does not respond. To prevent huge
+requests consume all resources. B allows to use other nodes; the protocol only proceeds if the
+number available remains sufficient for T and Q.
+
+## M21
+
+**Status and priority: 36 local tests present, completion P1/P2.** The number of tests does not
+measure coverage or safety alone.
+
+**Solution A. Property tests and controlled failures.** We generate different N/Q/T
+configurations, malformed messages and event sequences; we interrupt processes during commit,
+response, replication and recovery. It works by verifying invariants as uniqueness of the vote,
+durability of the receipt and absence of reopenings after rollback. Python/C borders are also
+required for invalid inputs.
+
+**Solution B. Execution with separate processes and independent review.** A playable procedure
+starts clients, coordinator and nodes, introduces delays, disconnects and faulty watches and
+measures times, memory and traffic. A reviewer tests attacks on the full flow. It works by showing
+problems that a demo in a process does not expose; the positive outcome of a campaign does not show
+absence of all bugs.
+
+**Example.** The server saves C but falls before responding.A checks that the retry finds only one
+acceptance.B checks the same scenario on distinct processes and measures if the time receipts arrive
+with a sufficient margin.We also measure the increase of signatures and bytes as N, Q and T grow,
+before promising scalability.
+
+## M22 - Any public anchor required by the track
+
+**Status and priority: absent, P3 and conditional.** It is included because it appeared in the
+valuation of guarantees. XRPL for the time and does not authorize integrations, transactions or
+expenses. If the track does not require a blockchain, a zero percentage here may be a correct broom
+choice.
+
+**Solution A. Anchor only checkpoint and result.** If required, we publish configuration
+footprint, end log root and result digest on a track-appropriate public registry. It works by
+providing an external reference to compare versions. It does not make data available, does not show
+that they are complete and does not verify the calculation.
+
+**Solution B. Check the blockchain application level for some of the rules.** An equivalent
+contract or component, if the platform allows it, controls admission, uniqueness or a test of the
+result. It works by moving those controls on a shared state machine, but requires evaluating costs,
+privacy, purposes and support to the primitive. CROSS cannot be considered natively verifiable
+without checking the availability on the platform; the chain does not become post-quantum per
+association.
+
+**Example.** After the result the coordinator publishes a different list. A allows to compare it
+with the already anchored digest. B can prevent a second incompatible finalization according to the
+rules of the contract. An incomplete initial list remains a problem even if its hash is registered
+immutably.
+
+## 5. Recommended Work Order
+
+| Phase | Areas | Concrete result to be verified |
 | --- | --- | --- |
-| 1 — Stato durevole | M06, M12; prime prove M21 | Un riavvio non perde nonce, attestazioni, ricevute o memoria temporale; retry e concorrenza non duplicano operazioni. |
-| 2 — Storia verificabile | M07, custodia di base M05 | Checkpoint conservati da altri rendono rilevabili modifiche e rollback del registro. |
-| 3 — Nodi reali | M08–M10, M20 | Client e validatori comunicano fra processi distinti e conservano dati indipendenti dal coordinatore. |
-| 4 — Chiusura e risultato completo | M01, M11, struttura M18 | Esiste una regola documentata e testata per chiudere la sessione senza ignorare le prove ammesse. |
-| 5 — Specializzazione sulla traccia | M02, M14–M18; M19/M22 se richiesti | Diritti, contenuti segreti, proprietà da provare e calcolo finale risolvono il problema effettivo della gara. |
-| Continuo | M03–M05, M13, M21 | Dipendenze fissate, chiavi protette, verifiche riproducibili e limiti documentati. |
+| 1 - Durable State | M06, M12; first tests M21 | A reboot does not lose nothing, attestations, receipts or time memory; retry and competition do not duplicate operations. |
+| 2 • Verifiable history | M07, basic case M05 | Checkpoints stored by others make changes and rollbacks of the registry detectable. |
+| 3 • Real Nodes | M08–M10, M20 | Client and validators communicate between distinct processes and keep independent data from the coordinator. |
+| 4 • Closed and complete result | M01, M11, structure M18 | There is a documented and tested rule to close the session without ignoring the evidence allowed. |
+| 5 Specialization on track | M02, M14–M18; M19/M22 if required | Rights, secret content, properties to be tested and final calculation solve the actual problem of the race. |
+| Continue | M03–M05, M13, M21 | Fixed dependencies, protected keys, playable checks and documented limitations. |
 
-Le soluzioni A e B non sono tutte da costruire insieme. Per ogni area va scelta
-la combinazione minima che soddisfa il requisito applicativo e il modello di
-fiducia. In particolare, evitare un componente non richiesto può essere una
-decisione migliore che aumentare artificialmente una percentuale.
+Solutions A and B are not all to be built together. For each area, the minimum combination that
+meets the application requirement and the trust model must be chosen. In particular, avoiding an
+unsolicited component can be a better decision than artificially increasing a percentage.
 
-## 6. Come aggiornare questo documento
+## 6. How to update this document
 
-Per modificare una percentuale annotare il requisito completato, i file cambiati,
-la prova eseguita e il limite rimasto. Non aumentarla soltanto perché è stata
-aggiunta una libreria, un algoritmo o una nuova schermata.
+To change a percentage note the completed requirement, the changed files, the test performed and the
+remaining limit. Do not increase it just because a library, algorithm or new screen has been added.
 
-Il [README](../README.md) descrive l'API e l'implementazione corrente. Il
-[percorso delle decisioni](IDEA_ATTUALE_E_PERCORSO.md) conserva la storia del
-progetto. Il documento di Niccolò è un contributo alla revisione, non un elenco
-di istruzioni eseguite automaticamente: tutte le proposte qui restano subordinate
-alle scelte del team e alla traccia.
+The [README](../README.md) describes the current API and implementation. [path of
+decisions](IDEA_ATTUALE_E_PERCORSO.md) Niccolò's document is a contribution to the revision, not a
+list of instructions performed automatically: all proposals here remain subject to team choices and
+track.

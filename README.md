@@ -1,86 +1,56 @@
-# Provenienza fotografica · IXH26 Team Bari
+# Photographic Provenance · IXH26 Team Bari
 
-Il progetto verifica due passaggi, dalla cattura fisica al file pubblicato.
+The project verifies two steps from physical capture to the published file.
 
-1. **Cattura.** Il modulo di acquisizione firma l'identificativo dello scatto e
-   l'impronta SHA-256 del RAW. Il registro ricalcola l'impronta dai byte ricevuti
-   e verifica la firma usando la chiave del dispositivo registrato.
-2. **Elaborazione.** `verifica_elaborazione()` ripete sul RAW la pipeline
-   deterministica scelta dal verificatore. La verifica passa se il risultato
-   coincide byte per byte con il file finale ricevuto.
+1. **Capture.** The acquisition module signs the capture ID and the RAW file's SHA-256 digest. The registry recomputes the digest from the received bytes and verifies the signature with the registered device key.
+2. **Processing.** `verifica_elaborazione()` reruns the verifier's deterministic pipeline on the RAW. Verification succeeds when the output matches the received file byte for byte.
 
-## Guida alla lettura del codice
+## Reading the code
 
-Il progetto è una libreria Python. Per orientarti, apri [l’API pubblica](protocollo/__init__.py), poi segui una foto dal certificato del sensore fino al voto dei validatori. Tieni aperto [il test di integrazione](tests/test_dispositivi.py) accanto ai moduli. La funzione di test `test_la_registrazione_abilita_la_verifica_e_consuma_la_sfida` mostra il primo passaggio con chiavi, richiesta e approvazioni concrete.
+Start with the [public Python API](protocollo/__init__.py), then follow a photo from the sensor certificate to the validators' votes. The [integration tests](tests/test_dispositivi.py) provide concrete examples. Start with `test_la_registrazione_abilita_la_verifica_e_consuma_la_sfida` for keys, a registration challenge, and signed approvals.
 
-### Percorso principale · dal sensore alla foto verificata
+### From sensor enrollment to a verified photo
 
-| Ordine | File da aprire | Cosa seguire nel codice |
+| Step | Files | What to follow |
 | --- | --- | --- |
-| 1 | [API delle firme](crypto_kit/__init__.py) e [implementazione di CROSSSigner](crypto_kit/cross_official.py) | Parti da `keygen`, `sign` e `verify`. Autorità, dispositivo e validatori usano la stessa API con chiavi diverse. Puoi rimandare il codice C alla fine della lettura. |
-| 2 | [dispositivi.py](protocollo/dispositivi.py) | Segui i dati in ordine: l’autorità firma il `CertificatoSensore`, il registro emette una sfida, il dispositivo firma la risposta e i validatori approvano la richiesta. `registra` consuma la sfida e restituisce la `ProvaIscrizione`. `verifica_iscrizione` mostra come controllarla con la configurazione pubblica. |
-| 3 | [ledger.py](protocollo/ledger.py) | `impronta_iscrizione` calcola il digest della prova. `prepara_ancoraggio` lo inserisce con l’ID del dispositivo nel memo di una transazione XRPL. Un wallet esterno firma e invia. `verifica_ancoraggio` usa l’ID della transazione per controllare conto, memo ed esito sul ledger validato. La stessa iscrizione fa da riferimento per gli scatti successivi. |
-| 4 | [provenienza.py](protocollo/provenienza.py) e [acquisizione.py](protocollo/acquisizione.py) | Leggi prima cosa firma il dispositivo per produrre una `AttestazioneDispositivo`. Poi segui `acquisisci_cattura_aes` per vedere come l’adattatore chiede al driver un nuovo fotogramma e verifica il tag AES-CMAC prima della firma CROSS. Torna a `verifica_elaborazione` per il confronto tra i byte prodotti dalla pipeline e la foto ricevuta. |
-| 5 | [bayer.py](protocollo/bayer.py) e [prnu.py](protocollo/prnu.py) | Il primo modulo verifica la geometria del mosaico RAW e ne separa le quattro posizioni colore. Nel secondo, segui `stima_prnu_bayer` durante la calibrazione e `punteggi_prnu_bayer` durante il confronto con uno scatto. `RegistroDispositivi.verifica_cattura_bayer` riunisce gli esiti di firma, geometria e impronta del sensore. |
-| 6 | [origine.py](protocollo/origine.py) | Parti da `QuorumOrigine.valuta`, che produce un `RapportoOrigine` per la foto. Segui poi `messaggio_da_approvare` sul validatore e `verifica` sul destinatario dei voti. Qui si vede la differenza tra il comitato che iscrive il sensore e quello che approva la provenienza di uno scatto. |
-| 7 | [rete_origine.py](protocollo/rete_origine.py) | Segui `PacchettoOrigine` dal mittente a `server_validatore`. Il nodo espone il rapporto su `/rapporto` e il voto su `/approvazioni`. Sul mittente, `raccogli_approvazioni` interroga i nodi e `verifica_prova_distribuita` controlla i voti raccolti. |
-| 8 | [Contestazioni](protocollo/origine.py) e [revoche.py](protocollo/revoche.py) | Se la pipeline produce una foto incompatibile, guarda `RapportoOrigine.attribuibile`. Occorrono anche firma del RAW, Bayer e PRNU validi e una `DichiarazioneSviluppo` firmata dal dispositivo che leghi RAW, foto e politica. I nodi votano su `/violazioni`. Al quorum, `registra_violazione` aggiorna SQLite. La transazione locale conta una sola volta la stessa coppia RAW/foto per dispositivo. Alla soglia configurata (predefinita 3) il registro considera il dispositivo revocato. |
+| 1 | [Signature API](crypto_kit/__init__.py) and [CROSSSigner](crypto_kit/cross_official.py) | Start with `keygen`, `sign`, and `verify`. The authority, device, and validators use the same API with their own keys. |
+| 2 | [dispositivi.py](protocollo/dispositivi.py) | The authority signs a `CertificatoSensore`. The registry issues a challenge, the device signs its response, and the validators approve the request. `registra` consumes the challenge and returns a `ProvaIscrizione`. `verifica_iscrizione` checks the proof using public configuration. |
+| 3 | [ledger.py](protocollo/ledger.py) | `impronta_iscrizione` hashes the enrollment proof. `prepara_ancoraggio` puts the digest and the device ID into an XRPL transaction memo. An external wallet signs and submits the transaction. `verifica_ancoraggio` checks the account, memo, and result on a validated ledger. Later captures use the same enrollment proof. |
+| 4 | [provenienza.py](protocollo/provenienza.py) and [acquisizione.py](protocollo/acquisizione.py) | Read what the device signs to produce an `AttestazioneDispositivo`. Then follow `acquisisci_cattura_aes` from the driver request through AES-CMAC verification to the CROSS signature. `verifica_elaborazione` compares the pipeline output with the submitted photo. |
+| 5 | [bayer.py](protocollo/bayer.py) and [prnu.py](protocollo/prnu.py) | The Bayer module checks geometry and separates the four positions in a RAW mosaic. `stima_prnu_bayer` builds a reference during calibration, and `punteggi_prnu_bayer` scores a capture against it. `RegistroDispositivi.verifica_cattura_bayer` reports the signature, geometry, and fingerprint checks. |
+| 6 | [origine.py](protocollo/origine.py) | `QuorumOrigine.valuta` produces a `RapportoOrigine`. Follow `messaggio_da_approvare` on the validator and `verifica` on the recipient. The enrollment and photo-approval committees are configured separately. |
+| 7 | [rete_origine.py](protocollo/rete_origine.py) | Follow `PacchettoOrigine` from the sender to `server_validatore`. The node exposes reports at `/rapporto` and votes at `/approvazioni`. The sender calls `raccogli_approvazioni` and checks the resulting votes with `verifica_prova_distribuita`. |
+| 8 | [Violations](protocollo/origine.py) and [revoche.py](protocollo/revoche.py) | If the pipeline output differs, `RapportoOrigine.attribuibile` requires valid checks for the RAW signature, Bayer geometry, and PRNU, along with a device-signed `DichiarazioneSviluppo` binding the RAW, photo, and policy. Nodes vote via `/violazioni`. After a quorum, `registra_violazione` records the RAW/photo pair once per device in SQLite. The registry treats the device as revoked at the configured threshold, which defaults to three. |
 
-### Percorsi che usano dati diversi
+### Other input paths
 
-- **Hai soltanto un JPEG.** Segui `analizza_jpeg` dalla verifica facoltativa delle credenziali C2PA al confronto con il catalogo PRNU. Il test con un JPEG isolato mostra come configurare il catalogo del nodo. [Analisi JPEG](protocollo/jpeg.py) · [Verifica C2PA](protocollo/credenziali.py) · [Test del catalogo](tests/test_dispositivi.py)
-- **Hai soltanto un JPEG e vuoi valutare l’ipotesi di generazione IA.** Leggi prima `CommunityForensics224` per il caricamento del modello, poi `QuorumIA` per capire cosa firmano i nodi. Segui infine `raccogli_voti_ia` nel modulo di rete. Il test esercita il quorum anche con un nodo offline. [Modello e voti](protocollo/analisi_ia.py) · [Raccolta via HTTP](protocollo/rete_origine.py) · [Test IA](tests/test_analisi_ia.py)
-- **Hai una serie di RAW a esposizioni diverse.** Segui `stima_profilo_fotonico` e `verifica_profilo_fotonico` per il confronto della varianza temporale con la calibrazione. Questo esperimento richiede più acquisizioni e ha un test dedicato. [Rumore fotonico](protocollo/rumore_fotonico.py) · [Test della curva](tests/test_rumore_fotonico.py)
+- **Standalone JPEG.** `analizza_jpeg` starts with optional C2PA credential verification and can compare the image against a calibrated JPEG PRNU catalog. [JPEG analysis](protocollo/jpeg.py) · [C2PA verification](protocollo/credenziali.py) · [Catalog test](tests/test_dispositivi.py)
+- **Statistical AI detection.** `CommunityForensics224` loads the model, `QuorumIA` defines what each node signs, and `raccogli_voti_ia` collects votes over HTTP. The test exercises a quorum with one node offline. [Model and votes](protocollo/analisi_ia.py) · [HTTP collection](protocollo/rete_origine.py) · [AI test](tests/test_analisi_ia.py)
+- **RAW series at different exposures.** `stima_profilo_fotonico` and `verifica_profilo_fotonico` compare temporal variance with a calibration reference. [Photon noise](protocollo/rumore_fotonico.py) · [Curve test](tests/test_rumore_fotonico.py)
 
-### Backend nativo, test e documenti di progetto
+### Native backend, tests, and project notes
 
-- **Dalla firma Python al C.** Le dimensioni di chiavi e firme sono in [specs.py](crypto_kit/specs.py). Il [wrapper Python](crypto_kit/cross_official.py) carica la libreria compilata attraverso il [bridge C](crypto_kit/native/cross_bridge.c). Lo [script di build](scripts/build_cross.py) verifica i sorgenti e compila le varianti `small` e `fast`. Per entrare nei sorgenti di terze parti, parti dalle [note di integrazione CROSS](third_party/cross/INTEGRATION.md) e dal [manifest della versione inclusa](third_party/cross/UPSTREAM.json).
-- **Dai risultati attesi ai test delle firme.** Il [test CROSS](tests/test_cross_official.py) confronta chiavi e firme con i [vettori di riferimento](tests/fixtures/). Lo [script di verifica KAT](scripts/verify_cross_kat.py) esegue il generatore ufficiale e controlla i checksum completi.
-- **Dai singoli controlli alla prova distribuita.** Leggi nell’ordine i [test di cattura e sviluppo](tests/test_provenienza.py), i [test delle risposte RPC di XRPL](tests/test_ledger.py) e i [test del registro e dei nodi](tests/test_dispositivi.py). In quest’ultimo file trovi anche validatori avviati in processi distinti e un nodo XRPL simulato.
-- **Per ricostruire le decisioni del team.** Consulta le [note iniziali](IXH26%20niccol%C3%B2.txt), il [percorso progettuale](docs/IDEA_ATTUALE_E_PERCORSO.md) e la [valutazione dei miglioramenti](docs/STATO_PERCENTUALI_E_MIGLIORAMENTI.md). Questi documenti comprendono proposte e fotografie di fasi precedenti del lavoro.
+- **From Python to C.** Key and signature sizes are in [specs.py](crypto_kit/specs.py). The [Python wrapper](crypto_kit/cross_official.py) loads the library through the [C bridge](crypto_kit/native/cross_bridge.c). The [build script](scripts/build_cross.py) checks the sources and builds the `small` and `fast` variants. [CROSS integration notes](third_party/cross/INTEGRATION.md) · [Upstream manifest](third_party/cross/UPSTREAM.json)
+- **Known-answer tests.** The [CROSS test](tests/test_cross_official.py) compares keys and signatures with [reference vectors](tests/fixtures/). The [KAT verification script](scripts/verify_cross_kat.py) runs the official generator and checks full checksums.
+- **From individual checks to a distributed proof.** Read the [capture and development tests](tests/test_provenienza.py), [XRPL response tests](tests/test_ledger.py), and [registry and validator tests](tests/test_dispositivi.py). The last file includes validators running in separate processes and a simulated XRPL node.
+- **Project history.** These documents record proposals and earlier stages of the project. [Initial notes](IXH26%20niccol%C3%B2.txt) · [Design history](docs/IDEA_ATTUALE_E_PERCORSO.md) · [Improvement plan](docs/STATO_PERCENTUALI_E_MIGLIORAMENTI.md)
 
-## Esecuzione
+## Running the project
 
 ```sh
 python3 scripts/build_cross.py
 python3 -B -m unittest discover -s tests -v
 ```
 
-Il build richiede Python 3 e un compilatore C11 su macOS o Linux. Usa la
-libreria di riferimento CROSS v2.2 inclusa in `third_party/cross/`.
-Per i moduli di analisi delle immagini usa le [dipendenze PRNU e JPEG](requirements-prnu.txt).
-L’adattatore AES-CMAC richiede anche `cryptography`. Per eseguire il modello IA
-servono le [dipendenze IA](requirements-ia.txt) e i pesi indicati nella sezione dedicata.
+The build requires Python 3 and a C11 compiler on macOS or Linux. It uses the CROSS v2.2 reference library bundled in `third_party/cross/`. Image analysis uses the [PRNU and JPEG dependencies](requirements-prnu.txt). The AES-CMAC adapter also requires `cryptography`. The optional AI detector uses the [AI dependencies](requirements-ia.txt) and the checkpoint linked below.
 
-## Iscrizione del dispositivo
+## Device enrollment
 
-Il verificatore configura le chiavi pubbliche delle autorità fidate. Ogni
-modulo presenta un `CertificatoSensore` firmato con CROSS da una di queste
-autorità. Il certificato lega l'identificativo del sensore alla chiave di
-cattura e al periodo di validità. L'autorità firma i byte restituiti da
-`messaggio_certificato_sensore(...)` dopo aver verificato il legame con il
-modulo fisico. Il codice usa un formato del progetto, distinto da X.509.
+The verifier configures the public keys of trusted authorities. Each device presents a `CertificatoSensore` that one of those authorities signed with CROSS. The certificate binds the sensor identifier to a capture key and validity period. The authority verifies the link to the physical module before signing the bytes returned by `messaggio_certificato_sensore(...)`. The project uses its own certificate format. The signature also covers the optional `tecnologia_sensore` field, which can identify different sensor technologies.
 
-Il campo facoltativo `tecnologia_sensore` è coperto dalla firma dell'autorità.
-Il protocollo accetta sensori di tecnologie diverse. Per la firma del RAW
-serve un modulo di acquisizione fidato.
+`verifica_certificato()` checks the authority, signature, and validity period. The device signs a one-time challenge together with its certificate digest. Each validator reconstructs the message, verifies the request, and signs an approval bound to the device's response and the committee configuration. The in-memory registry accepts a request once it has enough valid signatures from distinct members. RAW verification requires a certificate that is valid at verification time.
 
-`verifica_certificato()` controlla autorità, firma e validità temporale.
-Il dispositivo firma la sfida monouso insieme all'impronta del proprio
-certificato. Ogni validatore ricostruisce il messaggio, verifica la richiesta
-e firma un'approvazione legata alla risposta del dispositivo e alla
-configurazione del comitato. Il registro accetta la richiesta quando
-raggiunge la soglia di firme valide di membri distinti. Il registro è in
-memoria e la verifica del RAW richiede un certificato ancora valido al
-momento del controllo.
-
-Nel flusso previsto, alla prima attivazione il modulo di cattura genera la
-coppia di chiavi. La chiave privata rimane nel modulo. La chiave pubblica può
-essere inviata al servizio che certifica il sensore. Dopo la registrazione,
-`certificato_pubblico()` e `prova_pubblica()` espongono rispettivamente il
-certificato e l'intera prova di iscrizione. Il collegamento all'hardware e la
-distribuzione delle richieste di iscrizione fra validatori indipendenti sono
-da integrare.
+In the intended hardware flow, the capture module generates its key pair on first activation, retains the private key, and sends its public key to the certification service. Once enrolled, `certificato_pubblico()` and `prova_pubblica()` expose the certificate and complete enrollment proof. Hardware integration and network distribution of enrollment requests among independent validators are pending.
 
 ```python
 from protocollo import (
@@ -96,12 +66,12 @@ messaggio = messaggio_registrazione_dispositivo(certificato_sensore, sfida)
 firma_registrazione = modulo_di_cattura.firma(messaggio)
 richiesta = RichiestaRegistrazione(certificato_sensore, sfida, firma_registrazione)
 
-# Questo passaggio avviene presso ciascun validatore.
+# Run this step on each validator.
 if verificatore_del_validatore.verifica_richiesta(richiesta):
     messaggio = verificatore_del_validatore.messaggio_approvazione(richiesta)
     voto = ApprovazioneDispositivo(chiave_validatore, validatore.firma(messaggio))
 
-# Il registro riceve le approvazioni firmate dei validatori.
+# Collect the validators’ signed approvals in the registry.
 prova = registro.registra(richiesta, approvazioni_raccolte)
 
 attestazione = AttestazioneDispositivo(scatto_id, chiave_dispositivo, firma)
@@ -111,47 +81,27 @@ provenienza_verificata = cattura_verificata and verifica_elaborazione(
 )
 ```
 
-`raw` e `foto_finale` sono i byte dei file ricevuti. Il modulo di acquisizione
-firma i byte restituiti da `messaggio_cattura_dispositivo(scatto_id,
-impronta_raw, chiave_dispositivo)`.
+`raw` and `foto_finale` contain the received file bytes. The capture module signs the bytes returned by `messaggio_cattura_dispositivo(scatto_id, impronta_raw, chiave_dispositivo)`.
 
-### Autenticazione AES-CMAC durante la cattura
+### AES-CMAC authentication at capture
 
-L'adattatore opzionale `protocollo.acquisizione` richiede il pacchetto
-`cryptography`. Il sensore e il modulo di acquisizione condividono una chiave
-AES-256 dedicata, distinta per dispositivo. Per ogni richiesta, il modulo
-genera un nuovo ID di scatto. Il sensore calcola AES-CMAC direttamente sui
-byte dei pixel appena letti, legandoli all'ID e alla chiave pubblica del
-dispositivo. Restituisce il fotogramma e il tag nella stessa risposta.
+The optional `protocollo.acquisizione` adapter uses `cryptography`. The sensor and capture module share a dedicated AES-256 key unique to the device. The module generates a fresh capture ID for each request. The sensor computes an AES-CMAC over the pixel bytes it has just read, binding them to the capture ID and device public key. It returns the frame and tag together.
 
 ```python
 from protocollo.acquisizione import acquisisci_cattura_aes
 
-# Il driver chiede al sensore un nuovo fotogramma autenticato per questo ID.
+# The driver requests a new authenticated frame for this capture ID.
 raw, attestazione = acquisisci_cattura_aes(
     driver.leggi_fotogramma_autenticato, chiave_pubblica=chiave_dispositivo,
     chiave_aes=chiave_aes_modulo, firma_cross=modulo_di_cattura.firma,
 )
 ```
 
-Il modulo verifica il tag prima di calcolare l'hash per la firma CROSS. Il
-registro e i validatori verificano l'attestazione con la chiave pubblica.
-La chiave AES resta nel sensore e nel modulo di acquisizione.
-L'adattatore è testato in software. Su un dispositivo reale richiede un
-driver per il sensore che produce il tag durante la lettura e un modulo
-fidato che custodisca le chiavi e imponga il controllo prima di firmare.
-Il fotogramma autenticato va conservato nei byte originali se in seguito
-viene inserito in un altro contenitore o elaborato per ottenere la foto finale.
+The module verifies the tag before hashing the frame for the CROSS signature. The registry and validators verify the attestation with the public key. The sensor and capture module retain the AES key. The software adapter has been tested. A physical device requires a sensor driver that produces the tag during readout and a trusted module that stores the keys and enforces tag verification before signing. Preserve the original authenticated frame bytes when repackaging or processing the frame.
 
-## Confronto PRNU
+## PRNU comparison
 
-Installare le dipendenze opzionali con `python3 -m pip install -r requirements-prnu.txt`.
-L'autorità stima il riferimento con `protocollo.prnu.stima_prnu` a partire da
-più acquisizioni uniformi dello stesso sensore in condizioni controllate.
-Firma il digest restituito da `protocollo.prnu.impronta_prnu`, passandolo come
-`prnu_sha256` sia a `messaggio_certificato_sensore` sia a `CertificatoSensore`.
-Il quorum approva la richiesta di iscrizione legata a quel certificato e
-l'ancoraggio può pubblicare su XRPL l'impronta della prova di iscrizione.
+Install the optional dependencies with `python3 -m pip install -r requirements-prnu.txt`. The authority uses `protocollo.prnu.stima_prnu` to estimate a reference from multiple evenly illuminated captures of the same sensor under controlled conditions. It includes the digest returned by `protocollo.prnu.impronta_prnu` as `prnu_sha256` in both `messaggio_certificato_sensore` and `CertificatoSensore`. The enrollment quorum approves the request tied to that certificate. The enrollment proof digest can then be anchored on XRPL.
 
 ```python
 cattura_compatibile = registro.verifica_cattura_prnu(
@@ -159,21 +109,11 @@ cattura_compatibile = registro.verifica_cattura_prnu(
 )
 ```
 
-Il verificatore controlla la firma CROSS del RAW e il digest del riferimento.
-Poi confronta il rumore dei pixel decodificati con il riferimento certificato.
-Il decoder, scelto dal verificatore per il formato della fotocamera, deve
-restituire una matrice monocromatica di pixel lineari in `[0, 1]`, allineata
-al riferimento e con la stessa geometria. Il prototipo usa un residuo
-gaussiano e una correlazione normalizzata. La soglia va calibrata su scatti
-reali del sensore e di altri sensori. Il punteggio indica compatibilità
-statistica con il sensore e riguarda la fase di cattura.
+The verifier checks the RAW's CROSS signature and the reference digest, then compares the noise in the decoded pixels with the certified reference. The verifier selects a decoder for the camera format. It must return a monochrome array of linear pixels in `[0, 1]` matching the reference geometry and alignment. The prototype uses a Gaussian residual and normalized correlation. Calibrate the threshold using real captures from the target sensor and other sensors. The score measures statistical compatibility with the sensor at capture.
 
-### RAW con mosaico Bayer
+### Bayer RAW
 
-Se il RAW conserva il mosaico originale, l'autorità può usare `stima_prnu_bayer`
-sugli scatti di riferimento e firmare il digest di `impronta_prnu_bayer`. Il digest
-lega lo schema colore alle quattro impronte ordinate per posizione nel blocco
-`2 × 2`. Per `RGGB` l'ordine è `R, G₁, G₂, B`.
+When the RAW preserves the original mosaic, the authority can call `stima_prnu_bayer` on reference captures and sign the digest from `impronta_prnu_bayer`. The digest binds the color pattern to four fingerprints ordered by position in the `2 × 2` block. The order for `RGGB` is `R, G₁, G₂, B`.
 
 ```python
 from protocollo.prnu import impronta_prnu_bayer, stima_prnu_bayer
@@ -181,54 +121,24 @@ from protocollo.prnu import impronta_prnu_bayer, stima_prnu_bayer
 schema_bayer = "RGGB"
 riferimenti = stima_prnu_bayer(mosaici_di_calibrazione)
 prnu_sha256 = impronta_prnu_bayer(riferimenti, schema_bayer)
-# L'autorità inserisce prnu_sha256 nel certificato firmato prima dell'iscrizione.
+# The authority sets prnu_sha256 in the signed certificate before enrollment.
 cattura_compatibile = registro.verifica_cattura_prnu(
     raw, attestazione, riferimenti, decodifica=decodifica_mosaico_raw,
     soglia=soglia_calibrata, schema_bayer=schema_bayer,
 )
 ```
 
-Il decoder va configurato per la fotocamera e deve restituire il mosaico
-lineare in `[0, 1]` prima del demosaicing, con la stessa area, orientamento
-e origine della griglia usati in calibrazione. Tutti e quattro i punteggi
-devono raggiungere la soglia. `punteggi_prnu_bayer` restituisce i valori
-individuali per la calibrazione. La modalità a impronta singola resta
-disponibile per i certificati già emessi con quel riferimento.
+Configure the decoder for the camera. It must return the linear mosaic in `[0, 1]` before demosaicing, with the same active area, orientation, and grid origin used during calibration. All four scores must reach the threshold. `punteggi_prnu_bayer` returns individual scores for calibration. Certificates issued with a single fingerprint can still use that reference.
 
-Per ottenere gli esiti distinti della firma, della struttura Bayer e del
-PRNU, usare `registro.verifica_cattura_bayer`. Il decoder restituisce un
-`MosaicoBayer` con pixel e geometria letta dal RAW. Il verificatore fornisce
-la `GeometriaBayer` di calibrazione con schema, dimensioni in righe e
-colonne e origine sul sensore. Un esito `None` indica un controllo
-non eseguito.
+Use `registro.verifica_cattura_bayer` for separate signature, Bayer structure, and PRNU results. The decoder returns a `MosaicoBayer` containing the pixels and geometry read from the RAW. The verifier provides the calibration `GeometriaBayer`, including the pattern, dimensions in rows and columns, and origin on the sensor. A result of `None` means the check did not run.
 
-### Analisi di un JPEG senza RAW
+### Standalone JPEG analysis
 
-Il nodo può verificare una credenziale C2PA incorporata prima di consultare
-il catalogo PRNU. Per attivare il controllo, installare `c2pa-python==0.39.0`
-e passare a `analizza_jpeg` il contenuto di un file PEM con le radici
-fidate scelte dal nodo, tramite `radici_c2pa_pem`. Il verificatore controlla
-firma, catena del firmatario e corrispondenza con il JPEG ricevuto.
+The node can check an embedded C2PA credential before consulting its PRNU catalog. Install `c2pa-python==0.39.0` and pass a PEM bundle containing the node's trusted roots to `analizza_jpeg` through `radici_c2pa_pem`. The verifier checks the signature, the signer's certificate chain, and the binding to the received JPEG. It uses the embedded manifest and any revocation data included in the credential.
 
-Se il manifesto verificato dichiara che il JPEG è stato creato con IA
-generativa, l'esito è `generata_ia`. Negli altri casi l'analisi prosegue
-con il catalogo PRNU. Il risultato riporta anche lo stato della
-credenziale (`verificata`, `assente` o `non_verificata`) quando il controllo
-è attivo. Un manifesto verificato senza una dichiarazione di generazione
-IA lascia aperta la questione dell'origine fisica. La verifica usa i
-manifesti incorporati e i dati di revoca inclusi nella credenziale.
+If the verified manifest declares that generative AI created the JPEG, the result is `generata_ia`. Otherwise the node continues with the PRNU catalog. When C2PA is enabled, the response includes the credential state `verificata`, `assente`, or `non_verificata`. A verified credential without a declaration of AI generation leaves the physical origin open.
 
-Il nodo può ricevere anche un JPEG isolato. In questo caso confronta il
-residuo dell'immagine con i riferimenti JPEG calibrati per i sensori del
-proprio catalogo. Il mittente presenta solo il JPEG. Il catalogo è
-configurato dal nodo e contiene le prove d'iscrizione, gli ID XRPL, le
-impronte e le soglie.
-
-L'autorità stima il riferimento con `stima_prnu_jpeg` a partire da JPEG
-originali uniformi, acquisiti nella stessa modalità e con la stessa geometria.
-Inserisce `impronta_prnu_jpeg(riferimento)` come `prnu_jpeg_sha256` sia nel
-messaggio firmato sia nel certificato prima di iscrivere il dispositivo.
-Il riferimento JPEG è distinto dal riferimento RAW Bayer.
+For PRNU comparison, the sender supplies the JPEG. The node configures a catalog of enrollment proofs, XRPL transaction IDs, reference fingerprints, and thresholds. The authority builds a reference with `stima_prnu_jpeg` using original, evenly illuminated JPEGs acquired with the same mode and geometry. Before enrollment, it uses `impronta_prnu_jpeg(riferimento)` as `prnu_jpeg_sha256` in both the signed message and the certificate. JPEG and Bayer RAW use separate references.
 
 ```python
 from protocollo.jpeg import RiferimentoJPEG, analizza_jpeg
@@ -242,24 +152,11 @@ def valuta_jpeg(dati):
 esito = valuta_jpeg(jpeg)
 ```
 
-Passando `analisi_jpeg=valuta_jpeg` a `server_validatore`, si abilita
-`POST /analisi-jpeg` con i byte del JPEG come corpo. L'esito include i
-punteggi dei riferimenti valutabili. Può essere `compatibile` con un
-sensore del catalogo, `ambiguo` tra più sensori, `nessuna_corrispondenza`
-tra i riferimenti confrontati oppure `non_valutabile` in assenza di
-riferimenti utilizzabili. Le soglie vanno misurate su JPEG reali.
-Il confronto richiede raster allineati e della stessa dimensione. La
-compressione o il ridimensionamento possono ridurre il punteggio.
-L'esito è forense e la prova di derivazione continua a usare il RAW firmato.
+Pass `analisi_jpeg=valuta_jpeg` to `server_validatore` to enable `POST /analisi-jpeg` with the JPEG bytes as the request body. The result includes scores for usable references. It can report `compatibile` with one catalog sensor, `ambiguo` across multiple sensors, `nessuna_corrispondenza` among compared sensors, or `non_valutabile` when there are no usable references. Calibrate thresholds on real JPEGs. The comparison requires aligned rasters of the same size. Compression and resizing can lower the score. The comparison provides forensic evidence, while the derivation proof still requires the signed RAW.
 
-### Quorum sull'origine IA di un JPEG isolato
+### Quorum for statistical AI detection on a standalone JPEG
 
-Il nodo può eseguire localmente **Community Forensics ViT-S/16 224** (Park
-e Owens, CVPR 2025). Installare `python3 -m pip install -r requirements-ia.txt`
-e scaricare [i pesi MIT degli autori](https://huggingface.co/OwensLab/commfor-model-224/blob/26afc31e6b40c312c3fd42c05a758be62446215b/model.safetensors).
-Il caricatore controlla il digest SHA-256 prima di leggere il checkpoint.
-Il JPEG viene decodificato in RGB, ridimensionato, ritagliato al centro e
-normalizzato come nella procedura di valutazione degli autori.
+The node can run **Community Forensics ViT-S/16 224** (Park and Owens, CVPR 2025) locally. Run `python3 -m pip install -r requirements-ia.txt` and download the [authors' MIT-licensed weights](https://huggingface.co/OwensLab/commfor-model-224/blob/26afc31e6b40c312c3fd42c05a758be62446215b/model.safetensors). The loader checks the SHA-256 digest before loading the checkpoint. It follows the authors' evaluation procedure for RGB decoding, resizing, center cropping, and normalizing.
 
 ```python
 from protocollo.analisi_ia import CommunityForensics224, QuorumIA
@@ -267,32 +164,17 @@ from protocollo.rete_origine import raccogli_voti_ia
 
 quorum_ia = QuorumIA(quorum_foto, soglia_ia=soglia_calibrata)
 rilevatore_ia = CommunityForensics224("model.safetensors")
-# Passare quorum_ia=quorum_ia e rilevatore_ia=rilevatore_ia a server_validatore.
-# Gli URL dei nodi per questa funzione terminano in /voti-ia.
+# Pass quorum_ia=quorum_ia and rilevatore_ia=rilevatore_ia to server_validatore.
+# Node URLs for this function end in /voti-ia.
 voti = raccogli_voti_ia(jpeg, quorum_ia, url_validatori_ia)
 esito = quorum_ia.verifica(jpeg, voti)
 ```
 
-Ogni voto lega hash del JPEG, versione e digest del modello, soglia,
-punteggio ed esito. `raccogli_voti_ia` cerca il numero richiesto di firme
-distinte per lo stesso esito. La verifica pubblica restituisce
-`probabile_ia`, `inconcludente` oppure `None` se manca un quorum valido.
-Il punteggio del modello non è una probabilità calibrata per il nostro
-catalogo. Impostare la soglia su JPEG reali e sintetici, includendo immagini
-ricompresse e generatori diversi da quelli usati per la calibrazione.
-Il quorum attesta l'esito statistico. Il controllo dell'origine fotografica
-con RAW, firme e XRPL segue il percorso dedicato.
+Each vote binds the JPEG digest, model version and digest, threshold, score, and outcome. `raccogli_voti_ia` looks for the required number of distinct signatures on the same outcome. Public verification returns `probabile_ia`, `inconcludente`, or `None` when a valid quorum is unavailable. The model score has not been calibrated as a probability for our catalog. Calibrate the threshold on real and synthetic JPEGs, including recompressed images and inputs from generators excluded from the calibration set when evaluating generalization. The quorum attests the statistical result. The RAW, signature, and XRPL checks follow the photo provenance path.
 
-### Quorum per la provenienza della foto
+### Photo provenance quorum
 
-`QuorumOrigine` riceve un comitato configurato separatamente da quello
-d'iscrizione. Il verificatore fissa il decoder, la geometria attesa, la
-soglia PRNU, una pipeline deterministica e il conto XRPL di pubblicazione
-autorizzato, e distribuisce ai validatori l'hash della politica. Ogni
-validatore verifica le firme della prova d'iscrizione e, tramite il proprio
-nodo XRPL configurato, richiede una transazione validata e riuscita del conto
-autorizzato con il digest di quella stessa prova. Poi controlla il RAW e la
-foto finale. Il voto lega anche la prova d'iscrizione e l'ID della transazione.
+`QuorumOrigine` uses a committee configured separately from the enrollment committee. The verifier fixes the decoder, expected geometry, PRNU threshold, deterministic pipeline, and authorized XRPL publishing account, then distributes the policy digest to the validators. Each validator checks the enrollment signatures and independently queries its configured XRPL node for a successful validated transaction from the authorized account containing the same proof digest. It then checks the RAW and final photo. Each vote binds the enrollment proof and transaction ID.
 
 ```python
 from protocollo import ApprovazioneDispositivo, QuorumOrigine
@@ -311,29 +193,18 @@ if messaggio is not None:
 origine_approvata = quorum.verifica(registro, raw, foto_finale, attestazione, voti_raccolti, **ancoraggio)
 ```
 
-La verifica del quorum copre un singolo RAW attestato. Il modulo
-`rumore_fotonico` confronta separatamente la relazione tra luce media e
-varianza temporale a partire da almeno tre coppie di RAW lineari a
-esposizioni diverse, con luce uniforme, guadagno fisso e senza clipping.
-Per includerlo nella decisione su una foto serve una serie di acquisizioni
-attestate e legate a quella foto.
+Quorum verification covers a single attested RAW. Separately, `rumore_fotonico` examines the relationship between mean signal and temporal variance using at least three pairs of linear RAW captures at different exposures. Use uniform illumination, fixed gain, and avoid clipping. Including this signal in the decision for a photo would require an attested capture series linked to that photo.
 
-#### Validatori su processi o macchine distinti
+#### Validators on separate processes or machines
 
-Ogni nodo carica localmente la propria chiave di voto e la configurazione
-pubblica del quorum, delle autorità e del comitato d'iscrizione. Carica anche
-il decoder, la pipeline approvata e il riferimento PRNU. Chi carica la foto
-invia il RAW, il file finale, l'attestazione di cattura, la prova pubblica
-d'iscrizione e l'ID della sua transazione XRPL. Ogni nodo verifica
-autonomamente la prova e il suo ancoraggio, poi rifà i controlli di Bayer,
-PRNU e riproduzione della foto prima di firmare.
+Each node loads its own voting key and the public configuration of the quorum, authorities, and enrollment committee. It also loads the decoder, approved pipeline, and PRNU reference. The uploader sends the RAW, final file, capture attestation, public enrollment proof, and XRPL transaction ID. Before signing, each node independently verifies the proof and anchor, checks the Bayer geometry and PRNU, and reruns the pipeline.
 
 ```python
 from protocollo.rete_origine import (
     PacchettoOrigine, raccogli_approvazioni, server_validatore, verifica_prova_distribuita,
 )
 
-# Su ciascun nodo, con la rispettiva chiave privata di voto.
+# Run on each node with its own private voting key.
 with server_validatore(
     ("127.0.0.1", porta), registro_pubblico, quorum,
     chiave_validatore=chiave_pubblica_del_nodo, firma=firmatario_del_nodo,
@@ -341,50 +212,30 @@ with server_validatore(
 ) as nodo:
     nodo.serve_forever()
 
-# In un altro processo, con configurazione e chiavi pubbliche.
+# Run in another process using the configuration and public keys.
 pacchetto = PacchettoOrigine(raw, foto_finale, attestazione, prova_iscrizione, tx_id)
 voti = raccogli_approvazioni(pacchetto, registro_pubblico, quorum, url_approvazioni)
 origine_approvata = verifica_prova_distribuita(pacchetto, registro_pubblico, quorum, voti)
 ```
 
-Gli URL terminano in `/approvazioni`. Il raccoglitore interroga i nodi in
-parallelo e conta solo le firme valide di membri distinti. Chiunque abbia il
-pacchetto, i voti e la configurazione pubblica può verificare l'esito
-senza contattare i validatori. La verifica completa consulta XRPL in modo
-indipendente. Per macchine distinte esporre i nodi su una rete fidata o
-tramite un proxy HTTPS.
+Validator URLs end in `/approvazioni`. The collector queries nodes in parallel and counts valid signatures from distinct members. Anyone with the package, votes, and public configuration can verify the result without contacting the validators. Full verification independently queries XRPL. When validators run on different machines, use a trusted network or an HTTPS proxy.
 
-## Ancoraggio su XRP Ledger
+## XRP Ledger anchoring
 
-Il servizio prepara una transazione `AccountSet` con l'impronta SHA-256
-dell'intera prova di iscrizione. L'impronta copre il certificato, la challenge,
-la risposta firmata, la configurazione del comitato e le approvazioni. Il chiamante conserva la prova fuori catena insieme all’identificativo della
-transazione. Il wallet completa, firma e invia la transazione dal conto di
-pubblicazione, pagando la commissione di rete.
+The service prepares an `AccountSet` transaction whose memo contains the device ID and the enrollment proof's SHA-256 digest. The digest covers the certificate, challenge, signed response, committee configuration, and approvals. The caller stores the proof off-chain with the transaction ID. The wallet completes, signs, and submits the transaction from the publishing account and pays the network fee.
 
 ```python
 from protocollo import prepara_ancoraggio, verifica_ancoraggio
 
 transazione = prepara_ancoraggio(prova, conto_pubblicatore)
-# Il verificatore esterno riceve la prova e l'identificativo della transazione.
+# The external verifier receives the proof and transaction ID.
 iscrizione_verificata = verificatore_esterno.verifica_iscrizione(prova)
 ancorato = verifica_ancoraggio(prova, tx_id, conto_pubblicatore)
 provenienza_verificata = provenienza_verificata and iscrizione_verificata and ancorato
 ```
 
-La verifica interroga XRPL Testnet per impostazione predefinita e richiede
-una transazione riuscita in un ledger validato. Il verificatore configura
-le autorità, il comitato, la soglia, il nodo RPC e il conto di pubblicazione.
-Verifica sia le firme della prova sia la corrispondenza con l'impronta
-pubblicata su XRPL. La pubblicazione via rete della prova e l'invio dal wallet
-sono passaggi esterni al registro Python.
+Verification queries XRPL Testnet by default and requires a successful transaction in a validated ledger. The verifier configures the authorities, committee, threshold, RPC node, and publishing account. It verifies the proof's signatures and checks the digest published on XRPL. The application handles network publication of the proof and wallet submission outside the Python registry.
 
-Per verificare la cattura fisica serve integrare un modulo che firmi durante
-l'acquisizione. Per l'elaborazione, il verificatore deve fornire una pipeline
-deterministica con operazioni, parametri e versioni fissati. Il confronto prova
-che la pipeline autorizzata riproduce il file ricevuto. La storia effettiva
-dell'elaborazione richiederebbe un'attestazione del processo di esecuzione.
-La verifica con una soglia di tolleranza per le modifiche è in pausa come
-funzionalità distintiva del progetto.
+Verifying physical capture requires integrating a module that signs during acquisition. Verifying derivation requires a deterministic pipeline with fixed operations, parameters, and versions. The comparison proves that the approved pipeline reproduces the received file. Establishing the actual execution history would require an attestation from that process. Work on verification that tolerates changes to the file is on hold.
 
-[Backend CROSS di riferimento](https://github.com/CROSS-signature/CROSS-implementation).
+[CROSS reference backend](https://github.com/CROSS-signature/CROSS-implementation).

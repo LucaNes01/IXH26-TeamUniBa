@@ -1,308 +1,288 @@
-# Team Bari: idea attuale del progetto e percorso delle decisioni
+# Team Bari: current project idea and decision path
 
-**Documento di confronto per il team — 13 novembre 2026**
+**Comparison document for the team - November 13, 2026**
 
-**Nota del 20 novembre 2026.** Questo documento conserva le decisioni delle
-prime revisioni. Il codice corrente si concentra sulla verifica della cattura
-e della derivazione del file finale. Vedi il [README](../README.md).
+**Note of 20 November 2026.** This document retains the decisions of the first revisions. The
+current code focuses on the verification of the capture and derivation of the final file. See the
+[README](../README.md).
 
-**Aggiornamento del 14 novembre 2026:** il backend CROSS didattico descritto
-in questo documento è stato sostituito dalla libreria C ufficiale di riferimento
-v2.2. Sono state aggiunte ricevute firmate dal coordinatore, che conserva la
-propria chiave privata separata da quelle dei partecipanti. La suite attuale
-comprende 36 test, con vettori CROSS ufficiali; la rigenerazione dei 100 KAT di
-ciascuna variante small/fast coincide con gli SHA-512 upstream. Per lo stato
-aggiornato, installazione e limiti vedere il [README principale](../README.md).
-Il resto del documento conserva il percorso decisionale della prima revisione.
-Il vecchio toolkit HQC/MPC/ZKP/XRPL e le sue regressioni sono stati rimossi dal
-repository perché non utilizzati dal protocollo corrente. I riferimenti a quei
-file nelle sezioni seguenti descrivono il lavoro precedente.
-La scadenza usa ora ricevute temporali firmate dai validatori, distinte dalle
-approvazioni, con soglia e tolleranza immutabili. L'orologio del coordinatore
-non decide l'ammissione; le prove tempestive possono essere consegnate dopo.
-Il precedente stato `SCADUTO` è sostituito da `IN_ATTESA_DI_PROVE` quando un quorum
-osserva il termine: una chiusura definitiva richiede ancora prove di completezza.
-Non è stata introdotta un'integrazione XRPL.
+**Update of 14 November 2026:** the didactic CROSS backend described in this document has been
+replaced by the official reference C library v2.2. Receiveds have been added signed by the
+coordinator, which keeps its private key separate from those of the participants. The current suite
+includes 36 tests, with official CROSS test vectors; the regeneration of 100 KAT of each small/fast
+variant coincides with the SHA-512 upstream. For updated status, installation and limits see the
+[Main README](../README.md). The rest of the document retains the decision path of the first
+revision. The old toolkit HQC/MPC/ZKP/XRPL and its regressions have been removed from the repository
+because they are not used by the current protocol. References to those files in the following
+sections describe the previous work. The deadline now uses time receipts signed by validators,
+separated from approvals, with unchangeable threshold and tolerance. The coordinator's watch does
+not decide the admission; evidence produced before the deadline can be delivered later. `SCADUTO` is replaced by
+`IN_ATTESA_DI_PROVE` when a quorum observes the term: a final closure still requires proof of
+completeness. No integration has been introduced XRPL.
 
-Questo documento descrive la direzione concordata e la prima implementazione.
-La traccia dell'hackathon 2026 non è ancora disponibile: prepariamo una base
-riutilizzabile, senza assumere che la sfida sarà necessariamente un'elezione o un gioco.
+This document describes the agreed direction and the first implementation. The track of the
+hackathon 2026 is not yet available: we prepare a reusable base, without assuming that the challenge
+will necessarily be an election or a game.
 
-## 1. L'idea in poche parole
+## 1. The idea in a nutshell
 
-Vogliamo un protocollo in cui gli utenti possano registrare un'identità
-crittografica pseudonima e pubblicare contributi sotto forma di commitment.
-Un insieme di validatori autorizzati controlla i contributi e ne firma gli esiti.
-Un contributo viene accettato quando raggiunge la soglia fissata per la sessione.
+We want a protocol in which users can record a pseudonymous identifier and publish contributions in
+the form of a commitment. A set of authorized validators controls contributions and signs their
+results. A contribution is accepted when it reaches the threshold set for the session.
 
-**Registrarsi permette di inviare richieste, ma non attribuisce automaticamente
-potere di validazione, token o diritti di voto.**
+**Registering allows you to send requests, but does not automatically attribute validation power,
+tokens or voting rights.**
 
-Il server coordina il processo: apre la sessione, espone la configurazione,
-raccoglie i contributi e verifica le attestazioni. Nella versione attuale il server
-è centralizzato; l'obiettivo successivo è far eseguire le verifiche a nodi distinti.
-Non descriviamo quindi il prototipo come una rete già decentralizzata o trustless.
+The server coordinates the process: it opens the session, displays the configuration, collects the
+contributions and checks the attestations. In the current version the server is centralized; the
+next goal is to have the checks performed at distinct nodes. We do not describe the prototype as a
+network already decentralized or trustless.
 
-## 2. Da dove siamo partiti
+## 2. From where we started
 
-### L'esperienza del progetto 2025
+### Project Experience 2025
 
-Lo scorso anno il Team Bari ha ottenuto il terzo posto con ZK-F1-AI. Il progetto
-utilizzava commitment dello stato delle auto, prove ZK sulle operazioni e un
-meccanismo commit-reveal, con contratti su Ethereum.
+Last year the Team Bari won third place with ZK-F1-AI. The project used commitment of the state of
+the cars, ZK tests on operations and a commit-reveal mechanism, with contracts on Ethereum.
 
-La lezione da riprendere è il collegamento fra stato, operazioni consentite e
-risultato: ogni componente crittografico deve risolvere un problema del protocollo.
-Una collezione di algoritmi, da sola, non costituisce una soluzione completa.
+The lesson to be taken is the connection between state, operations allowed and result: each
+encryption component must solve a problem of the protocol. A collection of algorithms alone does not
+constitute a complete solution.
 
-Esaminando il codice conservato negli artefatti Hardhat abbiamo anche chiarito
-il tema degli account multipli: c'erano controlli per indirizzo e per commitment,
-ma non una verifica dell'unicità della persona. I token venivano inizialmente
-assegnati al deployer e distribuiti nello script di test, non regalati automaticamente
-a ogni nuovo wallet. Questo gestiva il setup della demo, senza risolvere in generale
-il problema di una persona che controlla più account.
+By examining the code stored in the Hardhat artifacts we also clarified the theme of multiple
+accounts: there were controls for address and commitment, but not a verification of the uniqueness
+of the person. The tokens were initially assigned to the deployer and distributed in the test
+script, not automatically given to each new wallet. This handled the setup of the demo, without
+generally solving the problem of a person who controls multiple accounts.
 
-### Il toolkit preparato per il 2026
+### The toolkit prepared for 2026
 
-Il repository iniziale raccoglieva HQC, CROSS, commitment su sindrome, prove di
-range, Shamir e strumenti di ancoraggio XRPL. La vecchia `versione_facile`
-aggiungeva registrazioni dinamiche, file di identità e raccolta delle firme.
+The initial repository collected HQC, CROSS, commitment on syndrome, range testing, Shamir and XRPL
+anchoring tools. The old `versione_facile` added dynamic recordings, identity files and signature
+collection.
 
-La revisione ha mostrato che quel flusso non realizzava ancora le garanzie
-descritte. In particolare, il server conosceva il segreto e generava anche le
-chiavi private degli utenti. Nella versione facile sono stati inoltre riprodotti:
+The revision showed that the flow did not yet realize the guarantees described. In particular, the
+server knew the secret and generated the private keys of users. In the easy version were also
+reproduced:
 
-- recupero del segreto da una sola quota usando il seme pubblico del polinomio;
-- decifratura del KEM semplificato usando informazioni pubbliche;
-- falsificazione di una firma semplificata;
-- raggiungimento del quorum sommando firme su proposte diverse.
+- recovery of secret from a single quota using the public seed of the polynomial;
+- Decryption of simplified KEM using public information;
+- forgery of a simplified signature;
+- achievement of quorum by adding signatures on different proposals.
 
-Questi riscontri riguardano quelle implementazioni: non sono attacchi agli
-algoritmi ufficiali HQC o CROSS. Hanno motivato l'eliminazione dei vecchi sei
-script della versione facile e la costruzione di un nuovo flusso di sessione.
-Il resto del toolkit rimane materiale di studio, con limiti da valutare separatamente.
+These findings concern those implementations: they are not attacks on the official HQC or CROSS
+algorithms. They motivated the elimination of the old six scripts of the easy version and the
+construction of a new session stream. The rest of the toolkit remains study material, with limits to
+be evaluated separately.
 
-## 3. Cosa abbiamo ricavato dalle tracce precedenti
+## 3. What we've got from previous tracks
 
-| Edizione | Problema centrale | Indicazione per noi |
+| Edition | Central problem | Indication for us |
 | --- | --- | --- |
-| 2024: elezione De Cifris | Il presidente può alterare il risultato o omettere scrutini locali. Il conteggio locale è assunto corretto. | Servono completezza dei contributi e correttezza dell'aggregazione. |
-| 2025: F1-AI | Stato delle auto e formula devono restare segreti; allenamenti e gare devono rispettare le regole anche con giocatori o server disonesti. | Servono gestione dei segreti, transizioni ammesse e verifica del risultato. |
+| 2024: De Cifris election | The president may alter the result or omit local scrutins. The local count is taken correct. | You need completeness of contributions and correctness of aggregation. |
+| 2025: F1-AI | Car status and formula must remain secret; training and races must respect the rules even with dishonest players or servers. | We need secret management, accepted transitions and verification of the result. |
 
-Nel 2025 i parametri devono essere sconosciuti anche al proprietario e le modifiche
-devono essere casuali. Una prova del solo intervallo di modifica non dimostra
-casualità; una firma non dimostra la correttezza della velocità. La traccia non
-stabilisce inoltre che la formula segreta sia lineare.
+In 2025 the parameters must be unknown to the owner as well and the changes must be random. A test
+of the change interval only does not show randomness; a signature does not show the correctness of
+the speed. The challenge also does not establish that the secret formula is linear.
 
-Entrambe le tracce richiedono una blockchain, ma non impongono nelle slide
-consultate un particolare algoritmo post-quantum. Il progetto dovrà risolvere
-prima il problema applicativo della nuova traccia.
+Both tracks require a blockchain, but do not impose a particular post-quantum algorithm in the
+slides. The project will first solve the application problem of the new track.
 
-Fonti originali, collegate dalla [pagina ufficiale IXH26](https://www.decifris.it/ixh26/):
+Original sources, linked by [Official page IXH26](https://www.decifris.it/ixh26/):
 
-- [Traccia IXH24, Track 1](https://drive.google.com/file/d/17NaxyjnmY-VAdZkmY0pDQbstzSYeB6LZ/view).
-- [Traccia IXH25, Track 1](https://drive.google.com/file/d/1NkwMQN705u5xdYd7kk1a06ZXsT0FkGtH/view).
+- [Track IXH24, Track 1](https://drive.google.com/file/d/17NaxyjnmY-VAdZkmY0pDQbstzSYeB6LZ/view).
+- [Track IXH25, Track 1](https://drive.google.com/file/d/1NkwMQN705u5xdYd7kk1a06ZXsT0FkGtH/view).
 
-## 4. I tre ruoli dell'architettura attuale
+## 4. The three roles of the current architecture
 
-| Ruolo | Cosa può fare | Quale potere non riceve automaticamente |
+| Role | What Can You Do | What power doesn't automatically receive |
 | --- | --- | --- |
-| Utente registrato | Pubblicare contributi firmati con la propria chiave. | Non diventa validatore e non ottiene un diritto elettorale. |
-| Validatore autorizzato | Verificare un contributo e firmare un esito positivo o negativo. | Non può cambiare da solo soglia, comitato o contributo. |
-| Server coordinatore | Configurare una nuova sessione e raccogliere richieste e attestazioni. | Le sue sole dichiarazioni non sostituiscono le firme dei validatori. |
+| Registered user | Publish signed contributions with your key. | He doesn't become a validator and he doesn't get an electoral right. |
+| Authorized validator | Check a contribution and sign a positive or negative outcome. | It cannot change thresholds, committees or contributions on its own. |
+| Coordinator Server | Configure a new session and collect requests and attestations. | His statements alone do not replace the signatures of the validators. |
 
-Chiunque disponga dei dati pubblici può controllare le firme. Nel quorum contano
-soltanto i validatori elencati nella configurazione della sessione.
+Anyone with the public data can check the signatures. Only validators listed in the session
+configuration are included in the quorum.
 
-Resta una fiducia esplicita nel coordinatore per la configurazione iniziale,
-la disponibilità dei dati, la completezza di ciò che mostra e l'orologio.
-L'implementazione attuale non elimina queste responsabilità.
+There remains an explicit trust in the coordinator for the initial configuration, data availability,
+completeness of what it shows and the clock. The current implementation does not eliminate these
+responsibilities.
 
-## 5. Il flusso concordato
+## 5. The agreed flow
 
-### A. Apertura della sessione
+### A. Opening of the session
 
-Il coordinatore fissa e rende consultabili:
+The coordinator shall establish and make available:
 
-- identificatore del sistema e della sessione;
-- elenco delle chiavi pubbliche dei validatori;
-- numero di approvazioni richieste;
-- scadenza;
-- identificatore della regola applicativa da controllare.
+- System and session identifier;
+- list of validators' public keys;
+- number of approvals required;
+- maturity;
+- Application rule identifier to be checked.
 
-La configurazione ha un'impronta crittografica. Le firme della sessione sono
-legate a quell'impronta, che comprende anche la suite di firma.
+Configuration has a cryptic imprint. The signatures of the session are linked to that fingerprint,
+which also includes the signature suite.
 
-**Elenco, soglia e scadenza non cambiano durante la sessione.** Una nuova
-configurazione richiede una nuova sessione; non abbiamo introdotto un protocollo
-di aggiornamento dinamico dei validatori.
+**List, threshold and expiration do not change during the session.** A new configuration requires a
+new session; we have not introduced a dynamic update protocol for validators.
 
-### B. Registrazione pseudonima
+### B. pseudonym registration
 
-Il client genera le chiavi CROSS e conserva la privata. Il server invia una sfida
-casuale monouso; il client la firma e dimostra di controllare la chiave che vuole
-registrare. La richiesta è legata anche alla configurazione della sessione.
+The client generates the CROSS keys and keeps the private one. The server sends a random challenge
+for single use; the client signs it and shows to check the key that it wants to register. The
+request is also linked to the session configuration.
 
-Il registro consultabile contiene identificatore pseudonimo e chiave pubblica.
-Non richiede nome, cognome o chiave privata. La stessa chiave non si registra
-due volte nella sessione.
+The user log contains a pseudonym and a public key identifier. It does not require a private name,
+surname or key. The same key does not register twice in the session.
 
-Questo è pseudonimato: i messaggi di una stessa chiave sono collegabili.
-Non promettiamo anonimato di rete, impossibilità di identificazione indiretta
-o un registro permanente tra sessioni, che non è ancora implementato.
+This is pseudonymized: messages from the same key can be connected. We do not promise network
+anonymity, impossibility of indirect identification or a permanent log between sessions, which is
+not yet implemented.
 
-### C. Pubblicazione del contributo
+### C. Publication of the contribution
 
-L'utente firma un messaggio che lega insieme autore, commitment, digest
-dell'eventuale prova applicativa, nonce e configurazione della sessione.
-Il nonce distingue le richieste e non può essere riutilizzato dallo stesso autore
-nella stessa sessione.
+The user signs a message that binds together author, commitment, digest of any application test,
+nonce and session configuration. The nonce distinguishes requests and cannot be reused by the same
+author in the same session.
 
-Il coordinatore controlla registrazione, firma e regola applicativa prima di
-ammettere il contributo alla raccolta delle attestazioni.
+The coordinator shall check the registration, signature and application rule before admitting the
+contribution to the collection of the attestations.
 
-### D. Controllo dei validatori
+### D. Verification of validators
 
-Ogni nodo deve verificare autonomamente il contributo secondo la medesima regola
-e firmare un esito riferito allo specifico contributo e alla configurazione.
+Each node must independently verify the contribution according to the same rule and sign an outcome
+related to the specific contribution and configuration.
 
-Una firma valida risponde a «chi ha autorizzato questo messaggio?».
-La regola applicativa risponde a «questo contributo rispetta i requisiti?».
-Sono controlli distinti. Una maggioranza di firme non rende corretta una prova falsa.
+A valid signature responds to who has authorized this
+message?.................................................................................................................................................................................................................................................................................................................................................................................................................................
 
-### E. Decisione e scadenza
+### E. Decision and deadline
 
-Il coordinatore accetta soltanto firme dei validatori configurati. Ogni validatore
-conta una volta per contributo; firme di contributi o sessioni differenti non si
-sommano. Una chiave non può essere elencata sotto due nomi per contare due volte.
+The coordinator only accepts signatures of the configured validators. Each validator counts once per
+contribution; different contributions or sessions do not add up. A key cannot be listed under two
+names to count twice.
 
-| Stato | Condizione |
+| State | Condition |
 | --- | --- |
-| `IN_ATTESA` | Non ci sono ancora abbastanza approvazioni, ma la soglia resta raggiungibile. |
-| `APPROVATO` | La soglia è stata raggiunta prima della scadenza. |
-| `RIFIUTATO` | Le attestazioni negative rendono impossibile raggiungerla. |
-| `SCADUTO` | La scadenza arriva senza una decisione definitiva. |
+| `IN_ATTESA` | There are not enough approvals yet, but the threshold remains reachable. |
+| `APPROVATO` | The threshold was reached before the deadline. |
+| `RIFIUTATO` | Negative attestations make it impossible to reach it. |
+| `SCADUTO` | The deadline comes without a final decision. |
 
-Alla scadenza la soglia non si abbassa. Un'assenza non viene trasformata in
-un'approvazione. Le decisioni già definitive restano tali.
+At the end of the period, the threshold does not fall, and an absence is not transformed into an
+approval, and the final decisions remain the same.
 
-## 6. Esempio: cinque validatori, quattro approvazioni
+## 6. Example: five validators, four approvals
 
-Il server apre S1 con cinque validatori e soglia quattro. Alice si registra
-senza pubblicare il proprio nome e invia un commitment firmato.
+The server opens S1 with five validators and threshold four. Alice registers without publishing her
+name and sends a signed commitment.
 
-1. Tre validatori approvano: il contributo resta in attesa.
-2. Arriva la quarta approvazione valida: diventa approvato.
-3. Un secondo contributo riceve soltanto tre approvazioni prima della scadenza:
-   diventa scaduto, senza abbassare la soglia.
-4. Se Alice crea cento nuovi account, nessuno entra automaticamente nel comitato.
-   Quegli account non possono costruire un quorum a proprio favore.
+1. Three validators approve: the contribution remains pending.
+2. Here comes the fourth valid approval: it becomes approved.
+3. A second contribution receives only three approvals before the deadline:
+   It gets expired, without lowering the threshold.
+4. If Alice creates a hundred new accounts, no one automatically enters the committee.
+   Those accounts can't build a quorum in their favor.
 
-Con soglia quattro su cinque, un solo esito negativo non basta a bloccare
-definitivamente il contributo; due esiti negativi rendono impossibili quattro
-approvazioni. Quattro su cinque è una configurazione dimostrativa, non una formula
-universale di sicurezza. Contare firme non equivale a implementare consenso BFT.
+With threshold four out of five, a single negative outcome is not enough to permanently block the
+contribution; two negative outcomes make four approvals impossible. Four out of five is a
+demonstration configuration, not a universal security formula. Counting signatures does not amount
+to implementing BFT consent.
 
-## 7. Le idee scartate o rinviate
+## 7. Ideas discarded or postponed
 
-| Idea discussa | Decisione attuale | Motivo |
+| Idea discussed | Current decision | Reason |
 | --- | --- | --- |
-| Tutti gli iscritti diventano validatori con lo stesso peso. | Scartata. | Una persona potrebbe creare molti account e controllare il quorum. |
-| Ogni contributo richiede l'unanimità. | Scartata per questa prima versione. | Un solo nodo assente o ostile potrebbe bloccare tutto. |
-| Soglia casuale, eventualmente con generatore post-quantum. | Scartata. | La casualità può produrre una soglia insufficiente e non definisce un modello di sicurezza. |
-| Soglia aggiornata periodicamente in base agli utenti online. | Scartata. | Gli utenti non sono i validatori; ingressi e disconnessioni non devono cambiare le condizioni a processo iniziato. |
-| Aggiornamento del comitato durante una sessione con approvazioni della configurazione precedente. | Rinviato. | Introduce complessità non necessaria al primo obiettivo. |
-| Una persona può registrarsi una sola volta, sempre. | Rinviata alla traccia. | Chiavi e IP non dimostrano l'unicità personale; serve una procedura di abilitazione se il diritto è personale. |
-| Il server genera chiavi private, segreto e quote per tutti. | Rimossa dal nuovo flusso. | Non realizza l'obiettivo di separare il coordinatore dai segreti degli utenti. |
-| Tre backend di firma: CROSS, UOV e SNOVA. | Ridimensionata e rinviata. | Prima serve un protocollo completo. UOV resta un possibile confronto legato al lavoro di tesi; SNOVA un riferimento successivo. |
-| Una ZKP generica risolve registrazione e legittimità. | Scartata come impostazione. | Occorre specificare esattamente la proprietà da provare e la procedura che attribuisce il diritto. |
+| All subscribers become validators with the same weight. | Rejected. | A person could create many accounts and check the quorum. |
+| Each contribution requires unanimity. | Discarded for this first version. | A single node absent or hostile could block everything. |
+| Random threshold, possibly with post-quantum generator. | Rejected. | Randomness can produce an insufficient threshold and does not define a security model. |
+| Threshold updated periodically based on online users. | Rejected. | Users are not validators; inputs and disconnects must not change the conditions at the start of the process. |
+| Updating of the committee during a session with approvals of the previous configuration. | Recommended. | Introduces unnecessary complexity to the first objective. |
+| A person can register only once, always. | Deferred until the challenge is known. | Keys and IPs do not demonstrate personal uniqueness; a licensing procedure is needed if the right is personal. |
+| The server generates private keys, secrets and shares for everyone. | Removed from the new flow. | It does not achieve the objective of separating the coordinator from the secrets of users. |
+| Three signature backends: CROSS, UOV and SNOVA. | Resized and postponed. | First we need a complete protocol. UOV remains a possible comparison related to the thesis work; NOVA a subsequent reference. |
+| A generic ZKP solves registration and legitimacy. | Discarded as a setting. | The property to be proved and the procedure for assigning the right must be specified. |
 
-### La distinzione tra account e diritti
+### The distinction between accounts and rights
 
-Il confronto con Bitcoin ci ha aiutato a formulare meglio il problema: poter
-creare molte chiavi non deve significare poter creare arbitrariamente potere.
-Non stiamo copiando il consenso di Bitcoin, né implementando proof-of-work.
+The comparison with Bitcoin helped us to formulate the problem better: being able to create many
+keys should not mean being able to create power arbitrarily. We are not copying Bitcoin's consensus,
+nor implementing proof-of-work.
 
-Per ora garantiamo una registrazione per chiave nella sessione, non una per
-persona. Se la traccia richiederà «un voto per persona» o «un bonus iniziale per
-persona», dovremo aggiungere una procedura di abilitazione. Il registro degli
-account non la sostituisce.
+For now we guarantee a key registration in the session, not one per person. If the track will
+require a vote per person
 
-## 8. Perché CROSS e quale ruolo può avere UOV
+## 8. Why CROSS and what role can OVU play
 
-CROSS è stato scelto per autenticare richieste e attestazioni. È una firma derivata
-da prove zero-knowledge, ma la sua prova interna non sostituisce una prova
-applicativa sul voto, sul commitment o sull'unicità della persona.
+CROSS has been chosen to authenticate requests and attestations. It is a signature derived from
+zero-knowledge evidence, but its internal evidence does not replace an application test on the vote,
+commitment or uniqueness of the person.
 
-UOV e SNOVA sono stati discussi per il lavoro di tesi di un componente del team.
-La modularità della firma può essere utile come confronto dimostrativo, ma non
-è il contributo principale del progetto. Non sono attualmente integrati.
+UOV and SNOVA were discussed for the thesis work of a team member. The modularity of the signature
+may be useful as a demonstration comparison, but it is not the main contribution of the project.
+They are not currently integrated.
 
-La discussione sull'articolo di Craig Gidney ha inoltre chiarito che aggiungere
-firme post-quantum ai messaggi applicativi non rende automaticamente post-quantum
-la blockchain sottostante. Anche i verificatori e i collegamenti fra gli oggetti
-firmati devono essere corretti: due firme non correggono una regola sbagliata.
+The discussion on Craig Gidney's article also made it clear that adding post-quantum signatures to
+application messages does not automatically post-quantum the blockchain below. Verifiers and links
+between signed objects must also be corrected: two signatures do not correct a wrong rule.
 
-Riferimenti: [CROSS](https://www.cross-crypto.com/),
-[UOV](https://www.uovsig.org/homepage),
-[articolo discusso](https://algassert.com/post/2602).
+References: [CROSS](https://www.cross-crypto.com/), [VOW](https://www.uovsig.org/homepage),
+[discussed article](https://algassert.com/post/2602).
 
-## 9. Cosa esiste oggi e cosa manca
+## 9. What exists today and what is missing
 
-| Componente | Stato attuale |
+| Component | Current status |
 | --- | --- |
-| Configurazione immutabile della sessione | Implementata. |
-| Registrazione con sfida monouso e firma | Implementata in memoria, per sessione. |
-| Registro pubblico degli pseudonimi e delle chiavi | Consultabile tramite API Python; non è ancora un servizio pubblico in rete. |
-| Separazione fra utenti e validatori | Implementata. |
-| Contributi e attestazioni legati alla stessa configurazione | Implementati. |
-| Quorum fisso, duplicati, rifiuti e scadenza | Implementati. |
-| Controllo applicativo del contenuto nascosto | Interfaccia esplicita; nella demo si verifica solo un commitment di 32 byte senza prova. |
-| CROSS ufficiale con parametri conformi | Da integrare: si usa ancora il CROSS didattico personalizzato del toolkit. |
-| Persistenza e ripristino | Da implementare. Un riavvio perde lo stato e i controlli di replay già consumati. |
-| Comunicazione e sincronizzazione fra nodi distinti | Da implementare; la demo li simula nello stesso processo. |
-| Identità personale, abilitazione elettorale e voto non collegabile all'account | Non implementati. Da valutare secondo la traccia. |
-| Transazioni XRPL confermate e verifica dal ledger | Da integrare. Gli strumenti di studio preesistenti non sono il nuovo flusso on-chain. |
-| Calcolo finale, completezza degli input e gestione dei segreti | Da definire e implementare sul caso d'uso. |
+| Unchangeable session configuration | Implemented. |
+| Registration with single-use challenge and signature | Implemented in memory, per session. |
+| Public register of aliases and keys | It can be consulted via Python API; it is not yet a public service on the network. |
+| Separating between users and validators | Implemented. |
+| Contributions and attestations related to the same configuration | Implement. |
+| Fixed Quorum, Duplicates, Waste and Expires | Implement. |
+| Application control of hidden content | Explicit interface; only a 32-byte commitment occurs in the demo without trial. |
+| Official CROSS with compliant parameters | To be integrated: you still use the customized CROSS didactic toolkit. |
+| Persistence and restoration | To be implemented. A reboot loses the status and replay controls already consumed. |
+| Communication and synchronization between distinct nodes | To be implemented; the demo simulates them in the same process. |
+| Personal identity, voting eligibility and vote not linked to the account | Not implemented. To be evaluated according to the track. |
+| XRPL transactions confirmed and verified by ledger | To be integrated. Preexisting study tools are not the new on-chain flow. |
+| Final calculation, completeness of inputs and management of secrets | To be defined and implemented on the case of use. |
 
-Sono passati 25 test: 15 sui nuovi scenari di sessione e 10 regressioni del
-toolkit precedente. Sono verifiche di comportamento, non una dimostrazione
-generale di sicurezza né un audit delle primitive.
+25 tests have passed: 15 on the new session scenarios and 10 regressions of the previous toolkit.
+They are behavior checks, not a general security proof or an audit of the primitive.
 
-Il materiale corrente è in `protocollo/sessione.py`,
-`versione_facile/demo_sessione.py` e `tests/test_sessione.py`.
-I documenti precedenti di flusso e changelog restano storici e descrivono anche
-componenti che sono stati rimossi. I file runtime delle vecchie identità non sono
-stati cancellati e non vengono usati dalla nuova demo.
+The current material is in `protocollo/sessione.py`, `versione_facile/demo_sessione.py` and
+`tests/test_sessione.py`. Previous flow documents and changelogs remain historical and also describe
+components that have been removed. Runtime files of old identities have not been deleted and are not
+used by the new demo.
 
-## 10. Come mostrarlo e cosa costruire dopo
+## 10. How to show it and what to build after
 
-Dalla radice del repository:
+From the root of the repository:
 
 ```bash
 python3 -B versione_facile/demo_sessione.py
 python3 -B -m unittest discover -s tests -v
 ```
 
-La demo mostra registrazione pseudonima, tentativo bloccato di autopromozione a
-validatore, approvazione con quattro firme e scadenza con tre firme. Le chiavi sono
-generate dai client simulati e non vengono stampate.
+The demo shows pseudonym recording, self-promotion attempt at validator, approval with four
+signatures and expiration with three signatures. Keys are generated by simulated clients and are not
+printed.
 
-L'ordine di lavoro proposto è:
+The proposed work order is:
 
-1. **Persistenza:** conservare configurazione, registrazioni, contributi, nonce e
-   attestazioni, con ripristino coerente dopo un riavvio.
-2. **Backend di firma conforme:** sostituire il CROSS didattico e verificarne
-   l'integrazione con vettori di test appropriati.
-3. **Nodi distinti:** trasportare i messaggi e far verificare a ciascun nodo gli
-   stessi dati, affrontando disponibilità e possibili viste discordanti.
-4. **Regole della traccia:** stabilire diritti, controlli applicativi, eventuali
-   segreti distribuiti e funzione di calcolo del risultato.
-5. **Ruolo di XRPL:** integrare il registro pubblico dove aggiunge una garanzia
-   concreta, verificando transazioni e dati confermati.
+1. **Persistence:** save configuration, recordings, contributions, nonce and
+   attestations, with consistent restoration after a restart.
+2. **Consistent signature backend:** replace the didactic CROSS and check it
+   integration with appropriate test vectors.
+3. **Differing nodes:** carry messages and have each node verify the
+   same data, facing availability and possible discordant views.
+4. **S track rules:** set rights, application controls, possible
+   distributed secrets and result calculation function.
+5. **Role of XRPL:** Integrate the public register where it adds a guarantee
+   concrete, verifying transactions and confirmed data.
 
-Il messaggio da condividere nel team è: **stiamo costruendo un protocollo di
-contributi firmati e verificati con comitato e quorum fissi per sessione.**
-La gestione delle persone, il significato del contributo e il risultato da
-certificare verranno specializzati sulla traccia. La priorità è rendere coerente
-e verificabile il flusso, prima di aggiungere altre primitive o opzioni di demo.
+The message to share in the team is: **We are building a protocol of signed and verified
+contributions with fixed committee and quorum per session.** The management of people, the meaning
+of the contribution and the result to be certified will be specialized on the track.The priority is
+to make the flow consistent and verifiable, before adding other primitive or demo options.

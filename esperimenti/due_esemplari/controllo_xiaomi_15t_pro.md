@@ -1,19 +1,19 @@
-# Controllo dei due DNG dello Xiaomi 15T Pro
+# Inspection of two Xiaomi 15T Pro DNGs
 
-| File | Ora nei metadati | ISO | Tempo |
-| --- | --- | ---: | ---: |
-| IMG_20261121_093305.dng | 09:33:05 | 725 | circa 1/50 s |
-| IMG_20261121_093307.dng | 09:33:07 | 725 | circa 1/50 s |
+| File | Time in metadata | ISO | Exposure time |
+| --- | ---: | ---: | ---: |
+| IMG_20261121_093305.dng | 09:33:05 | 725 | Approx. 1/50 s |
+| IMG_20261121_093307.dng | 09:33:07 | 725 | Approx. 1/50 s |
 
-Entrambi i file dichiarano Xiaomi 15T Pro e hanno un mosaico **BGGR** non compresso, con un campione per fotosito memorizzato a 16 bit. Il livello di bianco dichiarato è 16.383. Il raster misura 4096 × 3072 e il ritaglio predefinito misura 4080 × 3056, con origine (8, 8) in coordinate colonna e riga. I due file hanno hash SHA-256 diversi. Nei metadati controllati manca un seriale che permetta di attribuirli a due telefoni distinti.
+Both files identify the camera as Xiaomi 15T Pro and contain an uncompressed **BGGR** mosaic with one 16-bit stored sample per photosite. The declared white level is 16,383. The raster measures 4096 × 3072. The default crop measures 4080 × 3056 and starts at column 8, row 8. The two files have different SHA-256 digests. The inspected metadata contains no serial number that would distinguish two handsets.
 
-Per questo controllo i campioni sono stati letti direttamente dal blocco TIFF del DNG, senza demosaicizzazione o rotazione. Sul ritaglio predefinito è stato sottratto il livello del nero per ciascuna posizione del blocco Bayer, poi i valori sono stati normalizzati al bianco. I residui sono quelli del filtro gaussiano del progetto con sigma 1. La correlazione di Pearson è stata calcolata sulle posizioni valide in entrambi gli scatti, con valori normalizzati tra 0,05 e 0,95.
+We read the samples directly from the DNG TIFF block without demosaicing or rotation. Within the default crop, we subtracted the black level for each Bayer position and normalized the values against the white level. We computed residuals using the project's Gaussian filter with sigma 1, then calculated Pearson correlation at positions where both captures had normalized values between 0.05 and 0.95.
 
-| Posizione BGGR | Pixel validi in entrambi | Correlazione dei residui |
+| BGGR position | Valid pixels in both captures | Residual correlation |
 | --- | ---: | ---: |
-| B, alto a sinistra | 40,8% | 0,0471 |
-| G, alto a destra | 65,4% | 0,0428 |
-| G, basso a sinistra | 65,3% | 0,0445 |
-| R, basso a destra | 55,9% | 0,0492 |
+| B, top left | 40.8% | 0.0471 |
+| G, top right | 65.4% | 0.0428 |
+| G, bottom left | 65.3% | 0.0445 |
+| R, bottom right | 55.9% | 0.0492 |
 
-La coppia conferma la disponibilità di campioni Bayer per il confronto. Le correlazioni sono descrittive e possono includere dettagli della scena. Per misurare il riconoscimento dei due esemplari servono riferimenti costruiti da scatti uniformi per ciascun telefono, un gruppo per calibrare la soglia e scatti ciechi separati. La lettura tramite il percorso rawpy dello script dell'esperimento resta da verificare.
+The files contain Bayer samples suitable for comparison. The correlations describe this pair and can include shared scene details. Measuring discrimination between two handsets requires reference captures under uniform illumination for each unit, a separate set to calibrate the threshold, and a blind test set. The experiment script's rawpy reader was not tested on these two files in this inspection.
