@@ -1,0 +1,55 @@
+								QUELLO CHE HO CAPITO 
+
+Il documento racconta il percorso e lo stato attuale del progetto del Team Bari per l'hackathon 2026 (IXH26). Poiché la traccia ufficiale non è ancora uscita, il team ha deciso di costruire una base software riutilizzabile, sicura e ordinata, evitando di legarsi in anticipo a un tema specifico come un'elezione o un videogioco.
+
+1. L'idea centrale del progetto
+
+Il LEADER SUPREMO sta costruendo un protocollo in cui gli utenti possono inviare dati in forma protetta, e un gruppo ristretto di controllori (validatori) verifica che questi dati rispettino le regole, approvandoli con una firma. Al momento c'è un server centrale che fa da "coordinatore" (raccoglie le richieste e mostra i risultati), ma non può falsificare le approvazioni perché servono le firme crittografiche dei validatori. I
+
+2. I tre ruoli e come funziona il flusso
+
+Il sistema attuale divide i partecipanti in tre ruoli rigidi:
+- Utente registrato: Può inviare contributi firmati, ma non ha potere decisionale.
+- Validatore autorizzato: Controlla che i contributi siano validi e firma "sì" o "no".
+- Server coordinatore: Apre la sessione e raccoglie i messaggi, ma non può sostituirsi ai validatori.
+
+Il ciclo di vita di una sessione funziona così:
+- Apertura: Il coordinatore fissa le regole della sessione (chi sono i validatori, quante firme servono per approvare e la data di scadenza). Una volta aperta, queste regole non cambiano più.
+- Registrazione: L'utente crea le proprie chiavi sul suo dispositivo (senza darle al server) e si registra con uno pseudonimo. Questo garantisce che i suoi messaggi siano collegati a quell'account, ma non rivela la sua vera identità né impedisce a una persona di creare più account.
+- Invio del contributo: L'utente invia il suo dato protetto, accompagnato da una firma e da un codice univoco (nonce) che impedisce di inviare due volte lo stesso messaggio.
+- Verifica e Decisione: Ogni validatore controlla il contributo e firma il suo esito. A seconda delle firme raccolte prima della scadenza, il contributo diventa APPROVATO (raggiunge la soglia), RIFIUTATO (troppi "no" rendono impossibile raggiungere la soglia) o SCADUTO (scade il tempo).
+
+3. Scelte tecniche e idee scartate
+Perché CROSS e non altri algoritmi: Hanno scelto CROSS come schema di firma post-quantum per autenticare i messaggi. Cosa hanno scartato: Hanno bocciato l'idea di far diventare validatori tutti gli iscritti, di chiedere l'unanimità (basterebbe un assente a bloccare tutto) o di usare soglie casuali. 
+
+% =========================================================================================================================================================
+							
+								QUELLO CHE SI POTREBBE MIGLIORARE 								
+
+PREMESSA: QUESTO è QUELLO CHE HO CAPITO E HO CHIESTO/RIVISTO CON CHAT. GRAZIE LUCA!!!!
+
+• Ridurre la fiducia nel Server Coordinatore: Attualmente, il coordinatore ha il controllo su disponibilità dei dati, completezza di ciò che mostra e orologio. Se il server è malevolo, potrebbe censurare i contributi di un utente o nascondere le firme di un validatore. Miglioramento: Introdurre ricevute crittografiche firmate dal coordinatore alla ricezione di un messaggio, oppure prevedere che utenti e validatori possano sincronizzarsi direttamente tra loro (peer-to-peer) senza passare per forza dal server centrale.
+• Gestione della scadenza e dell'orologio: Affidarsi all'orologio locale del coordinatore è rischioso, perché il server potrebbe manipolare l'ora per far scadere artificialmente una proposta. Miglioramento: Ancorare il tempo a un riferimento esterno verificabile, come il numero di blocco o il timestamp di un ledger pubblico (ad esempio XRPL, già previsto nella roadmap).
+• Log append-only (Struttura a catena): Attualmente il server potrebbe cancellare un contributo dopo averlo accettato, alterando la storia della sessione. Miglioramento: Strutturare il registro della sessione come una catena di hash (blockchain locale), dove ogni nuovo evento (registrazione, contributo, firma) include l'hash dell'evento precedente. Chiunque scarichi il registro può verificare matematicamente che non sia stato rimosso alcun pezzo.
+• Separazione dei domini per le firme (Domain Separation): Nel protocollo si firma in più fasi: durante la registrazione (la sfida), durante l'invio del contributo e durante l'attestazione dei validatori. Miglioramento: Inserire un prefisso univoco (es. REG_CHALLENGE_v1, CONTRIB_SUBMIT_v1, VALIDATOR_VOTE_v1) all'inizio dei byte che vengono firmati. Questo impedisce che un attaccante possa prendere una firma valida fatta per un'azione e riutilizzarla in un contesto diverso (Cross-Protocol/Cross-Context Replay).
+• Revoca o rotazione di emergenza per i validatori: La configurazione della sessione è immutabile, il che è ottimo per la stabilità, ma se la chiave privata di un validatore viene rubata a metà sessione, un attaccante può usarla per approvare contributi falsi. Miglioramento: Prevedere un meccanismo di "sospensione d'emergenza" in cui una super-maggioranza degli altri validatori (es. 4 su 5) può firmare una transazione speciale per invalidare la chiave compromessa senza dover chiudere l'intera sessione.
+• Protezione dei metadati di rete (Timing e IP): Il documento precisa onestamente che il sistema offre pseudonimato ma non anonimato di rete. Tuttavia, il server coordinatore può facilmente collegare l'indirizzo IP di chi invia il contributo all'identità pseudonima. Miglioramento: Permettere l'invio dei contributi tramite un meccanismo di relayer (un nodo intermedio che inoltra il messaggio al posto dell'utente) oppure introdurre ritardi casuali nell'elaborazione, riducendo la possibilità per il server di profilare gli utenti in base all'orario o all'IP.
+• Gestione sicura della fase di "Reveal" (Svelamento): Poiché gli utenti inviano dati sotto forma di commitment (dati nascosti), prima o poi molti protocolli richiedono di svelare il dato originale per calcolare il risultato finale. Miglioramento: Progettare fin da ora la regola di svelamento per evitare il problema dell'abort (un utente che, vedendo che sta per perdere, si rifiuta di svelare il proprio dato bloccando tutti). Si può risolvere chiedendo ai validatori di custodire una quota cifrata del segreto da ricostruire solo se l'utente sparisce.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
